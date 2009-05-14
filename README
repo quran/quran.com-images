@@ -1,0 +1,5 @@
+required modules
+	GD
+	GD::Text::Align
+	DBI
+	DBD::SQLite2

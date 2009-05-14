@@ -1,4 +1,5 @@
 *.swp
 *.swo
+*.png
 output/*
-
+*.db-journal

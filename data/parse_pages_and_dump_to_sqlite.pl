@@ -1,12 +1,15 @@
 #!/usr/bin/env perl
+# bismillah in the name of allah most gracious, most merciful
 # author nour sharabash
-# bismillah
+# vim: ts=2 sw=2 noexpandtab
 use strict;
 use warnings;
 use DBI;
 
-my $dbh = DBI->connect("dbi:SQLite2:dbname=sura_ayah_page_text.sqlite2.db","","", { RaiseError => 0, AutoCommit => 1 });
-$dbh->do("drop table sura_ayah_page_text");
+my $dbh = DBI->connect("dbi:SQLite2:dbname=sura_ayah_page_text.sqlite2.db","","", 
+	{ RaiseError => 0, AutoCommit => 1 });
+
+eval { $dbh->do("drop table sura_ayah_page_text"); };
 $dbh->do("create table sura_ayah_page_text (
 	sura integer,
 	ayah integer,
@@ -35,6 +38,7 @@ for (1..604) {
 	}
 	close $fh;
 }
+
 for (sort { $a <=> $b } keys %{$suras}) { # i.e. "for $suras keys, numerically sorted"
 	my $sura = $_;
 	my $ayas = $suras->{$_};
@@ -45,4 +49,5 @@ for (sort { $a <=> $b } keys %{$suras}) { # i.e. "for $suras keys, numerically s
 		$dbh->do("insert into sura_ayah_page_text (sura, ayah, page, text) values ($sura, $aya, ". $hash->{page} .", ". $dbh->quote($hash->{text}) .");");
 	}
 }
+
 $dbh->disconnect;
