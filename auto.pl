@@ -1,6 +1,8 @@
 #!/usr/bin/env perl
 # bismillah in the name of allah most gracious, most merciful
 # author nour sharabash
+# original php script by ahmed el-helw
+# contributions from bassem shama
 # vim: ts=2 sw=2 noexpandtab
 use strict;
 use warnings;
