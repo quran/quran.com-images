@@ -1,4 +1,7 @@
-required modules
+Example output
+	http://foo.quran.com/quran_images/output/width_480/em_1.4/2_255.png
+
+Required modules
 	GD
 	GD::Text::Align
 	DBI
