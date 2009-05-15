@@ -3,7 +3,6 @@
 # author nour sharabash
 # original php script by ahmed el-helw
 # contributions from bassem shama
-# vim: ts=2 sw=2 noexpandtab
 use strict;
 use warnings;
 
@@ -194,3 +193,4 @@ i.e. './output/width_480/em_0.9/2_255.png' the image for 480 pixels
      at 90% font size.
 
 =cut
+# vim: ts=2 sw=2 noexpandtab
