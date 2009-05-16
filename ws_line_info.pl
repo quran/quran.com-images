@@ -21,44 +21,42 @@ while (my $row = $sth->fetchrow_hashref){
    my $sura = $row->{sura};
    my $ayah = $row->{ayah};
    print "$sura:$ayah\t";
-   print getLineCount("$dir/$sura" . "_$ayah.png", $verbose) . "\n";
+   print getFirstXs("$dir/$sura" . "_$ayah.png", $verbose) . "\n";
 }
 
-sub getLineCount {
+sub getFirstXs {
+   my $minSpaces = 5; # minimum number of spaces to consider a new line
+
    my $image = newFromPng GD::Image($_[0]);
    my $verbose = $_[1];
 
    (my $width, my $height) = $image->getBounds();
 
-   my @ranges = ();
-   my $inRange = 0;
+   my $max_x = 0;
+   my $spaces = 0;
+   my @firstx_per_line = ();
    for (my $y = 0; $y < $height; $y++){
-      my $x;
+      my $x = 0;
       for ($x = $width; $x > 0; $x--){
          last if $image->getPixel($x, $y);
       }
-      if ($x == 0){ $inRange = 1; }
-      elsif ($inRange){ push(@ranges, $y); $inRange = 0; }
-   }
 
-   my $len = @ranges;
-   my @firstx_per_line = ();
-
-   for (my $ctr = 0; $ctr < $len; $ctr++){
-      my $cur = $ranges[$ctr];
-      my $next = (($ctr+1) == $len)? $height : $ranges[$ctr+1];
-
-      my $max_x = 0;
-      for (my $y = $cur; $y < $next; $y++){
-         for (my $x = $width; $x >= 0; $x--){
-            if ($image->getPixel($x, $y)){
-               if ($x > $max_x){ $max_x = $x; }
-               last;
+      if ($x == 0){ $spaces++; }
+      else {
+         if ($spaces > $minSpaces){
+            if ($max_x > 0){
+               push(@firstx_per_line, $max_x);
+               $max_x = 0;
             }
          }
+         $spaces = 0;
+         if ($x > $max_x){ $max_x = $x; }
       }
+   }
 
+   if ($max_x > 0){
       push(@firstx_per_line, $max_x);
+      $max_x = 0;
    }
 
    if ($verbose){
