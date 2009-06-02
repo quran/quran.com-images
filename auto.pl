@@ -90,7 +90,6 @@ sub generate_image {
 			$gd_text->set_text($line_text);
 			my $width = $gd_text->get('width');
 			my $height = $gd_text->get('height');
-			print "before $width\n";
 			my $gd = GD::Image->new($width, $height);
 			my $align = GD::Text::Align->new($gd,
 				valign => 'top',
@@ -103,7 +102,6 @@ sub generate_image {
 			my $coord_y = $padding * $phi;
 			my @box = $align->bounding_box($coord_x, $coord_y, 0);
 			$width = max($box[2], $box[4]) - max($box[0], $box[6]); # Removes horizontal whitespace
-			print "after $width\n";
 			do {
 				$longest{width} = $width;
 				$longest{line}  = $i;
