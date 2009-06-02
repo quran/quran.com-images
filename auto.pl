@@ -17,6 +17,8 @@ use GD::Text::Align;
 use Getopt::Long;
 use Pod::Usage;
 
+use List::Util qw/min max/;
+
 my ($sura, $ayah, $batch, $width, $em, $help) = (undef, undef, undef, 640, 1.0, 0);
 
 my $self = \&main;
@@ -138,7 +140,11 @@ sub generate_image {
 		);
 		$align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
 		$align->set_text($text);
-		$align->draw(($inner_width + $padding), ($padding * $phi) + ($i * ($font_size + $line_spacing)), 0);
+		my $coord_x = $inner_width + $padding;
+		my $coord_y = $padding * $phi + $i * ($font_size + $line_spacing);
+		my @box = $align->bounding_box($coord_x, $coord_y, 0);
+		$coord_x += $width - max($box[2], $box[4]); # Removes horizontal whitespace
+		$align->draw($coord_x, $coord_y, 0);
 	};
 
 
