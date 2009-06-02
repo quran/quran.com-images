@@ -71,6 +71,8 @@ sub generate_image {
 	my $text = $self->_reverse_text($row[1]);
 	my $font_size = 24;
 	$font_size = $font_size * $em;
+	# arbitrary size adjustment for sura 1 and sura 2, verses 1 through 5 that seems about right
+	$font_size *= 1 + $phi * $phi * $phi if $sura == 1 || $sura == 2 && $ayah <= 5;
 	my $padding = $font_size * $phi + ($font_size * $phi * $phi * $phi);
 	my $inner_width = $width - (2*$padding);
 
@@ -136,9 +138,9 @@ sub generate_image {
 	my $lines = scalar @line;
 	my $sub_phi = 1 + ($phi * $phi * $phi);
 	my $line_spacing = $font_size * $sub_phi;
-	my $height = $lines * $_height + ($lines - 1) * $line_spacing;
+	my $height = $lines * $_height + ($lines - 1) * $line_spacing + 2*$padding;
 
-	my $gd = GD::Image->new(($inner_width + (2*$padding)), ($height + (2*$padding)));
+	my $gd = GD::Image->new($width, $height);#($inner_width + (2*$padding)), $height);#($height + (2*$padding)));
 	my $white = $gd->colorAllocate(255,255,255);
 	my $black = $gd->colorAllocate(0,0,0);
 	$gd->transparent($white);
@@ -155,8 +157,21 @@ sub generate_image {
 		$align->set_text($text);
 		my $coord_x = $inner_width + $padding;
 		my $coord_y = $padding * $phi + $i * ($font_size + $line_spacing);
+		$coord_y = $i * ($font_size + $line_spacing);
 		my @box = $align->bounding_box($coord_x, $coord_y, 0);
+		my $h_foo = max($box[1], $box[3]) - min($box[5], $box[7]);
+		if ($sura == 1) {
+			$coord_y += 5;
+		}
+		elsif ($sura == 2 && $ayah <= 5) {
+			$coord_y += 8;
+		}
+		else {
+			$coord_y += 13;
+		}
+
 		$coord_x += $width - max($box[2], $box[4]); # Removes horizontal whitespace
+		print "$sura $ayah\n";
 		$align->draw($coord_x, $coord_y, 0);
 	};
 
