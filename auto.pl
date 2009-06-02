@@ -89,6 +89,21 @@ sub generate_image {
 			my $line_text = $line[$i];
 			$gd_text->set_text($line_text);
 			my $width = $gd_text->get('width');
+			my $height = $gd_text->get('height');
+			print "before $width\n";
+			my $gd = GD::Image->new($width, $height);
+			my $align = GD::Text::Align->new($gd,
+				valign => 'top',
+				halign => 'right'#,
+				#color  => $black,
+			);
+			$align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
+			$align->set_text($line_text);
+			my $coord_x = $inner_width + $padding;
+			my $coord_y = $padding * $phi;
+			my @box = $align->bounding_box($coord_x, $coord_y, 0);
+			$width = max($box[2], $box[4]) - max($box[0], $box[6]); # Removes horizontal whitespace
+			print "after $width\n";
 			do {
 				$longest{width} = $width;
 				$longest{line}  = $i;
@@ -113,7 +128,7 @@ sub generate_image {
 		$text = join "\n", @line;
 		return $text;
 	};
-	while ($_width > $inner_width) {
+	while ($_width > $width) {
 		$text = $_wrap_text->($text);
 		$gd_text->set_text($text);
 		$_width = $gd_text->get('width');
