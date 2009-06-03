@@ -1,8 +1,20 @@
 #!/usr/bin/env perl
-# bismillah in the name of allah most gracious, most merciful
-# author nour sharabash
-# original php script by ahmed el-helw
-# contributions from bassem shama
+# بسم الله الرحمن الرحيم
+# In the name of Allah, Most Gracious, Most Merciful
+
+# Quran Image Generator
+#  Using primary source fonts originating from the King Fahed Complex in Saudi Arabia...
+#  <em>As seen on Quran.com</em>
+
+# Authors/Contributors
+#  Ahmed El-Helw
+#  Nour Sharabash
+#  Bassem Shama
+
+# The code is copyleft GPL (read: free) but the actual fonts and pages (in the 'data' 
+# directory) belong to the King Fahed Complex in Saudia Arabia
+# Their URL: http://www.qurancomplex.com
+
 use strict;
 use warnings;
 

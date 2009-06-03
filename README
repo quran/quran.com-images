@@ -1,5 +1,45 @@
+# بسم الله الرحمن الرحيم
+# In the name of Allah, Most Gracious, Most Merciful
+
+# Quran Image Generator
+#  Using primary source fonts originating from the King Fahed Complex in Saudi Arabia...
+#  <em>As seen on Quran.com</em>
+
+# Authors/Contributors
+#  Ahmed El-Helw
+#  Nour Sharabash
+#  Bassem Shama
+
+# The code is copyleft GPL (read: free) but the actual fonts and pages (in the 'data'
+# directory) belong to the King Fahed Complex in Saudia Arabia
+# Their URL: http://www.qurancomplex.com
+
+Usage
+	./auto.pl -width 162 -em 1.62 -batch
+or,
+	./auto.pl -width 262 -em 1.38 -sura 2 -ayah 255
+etc...
+
 Example output
+	http://foo.quran.com/quran_images/output/width_480/em_0.9/2_255.png
+	http://foo.quran.com/quran_images/output/width_480/em_0.9/2_282.png
+	http://foo.quran.com/quran_images/output/width_480/em_1.0/2_255.png
+	http://foo.quran.com/quran_images/output/width_480/em_1.0/2_282.png
 	http://foo.quran.com/quran_images/output/width_480/em_1.4/2_255.png
+	http://foo.quran.com/quran_images/output/width_480/em_1.4/2_282.png
+
+	http://foo.quran.com/quran_images/output/width_640/em_1.0/2_255.png
+	http://foo.quran.com/quran_images/output/width_640/em_1.0/2_282.png
+	http://foo.quran.com/quran_images/output/width_640/em_1.2/2_255.png
+	http://foo.quran.com/quran_images/output/width_640/em_1.2/2_282.png
+	http://foo.quran.com/quran_images/output/width_640/em_1.6/2_255.png
+	http://foo.quran.com/quran_images/output/width_640/em_1.6/2_282.png
+
+	http://foo.quran.com/quran_images/output/width_1024/em_2.4/2_255.png
+	http://foo.quran.com/quran_images/output/width_1024/em_2.4/2_282.png
+
+	http://foo.quran.com/quran_images/output/width_1280/em_3.6/2_255.png
+	http://foo.quran.com/quran_images/output/width_1280/em_3.6/2_282.png
 
 Required modules
 	GD
