@@ -164,13 +164,13 @@ sub generate_image {
 			$coord_y += 5;
 		}
 		elsif ($sura == 2 && $ayah <= 5) {
-			$coord_y += 8;
-		}
-		else {
 			$coord_y += 13;
 		}
+		else {
+			$coord_y += 21;
+		}
 
-		$coord_x += $width - max($box[2], $box[4]); # Removes horizontal whitespace
+		$coord_x += $width - max($box[2], $box[4]) - 3; # Removes horizontal whitespace
 		print "$sura $ayah\n";
 		$align->draw($coord_x, $coord_y, 0);
 	};
