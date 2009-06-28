@@ -33,11 +33,16 @@ for (1..604) {
 		# a break indicates a new line in the ayah.
 		if ($line =~ s/^.*?onclick=ClickAyaArea\(([\d]+),([\d]+)\) target=_top>(<center>)?([^<]+)(<\/center>)?<\/A>(<br>)?//){
 			do {
-				$pages->{$page_num}->{$line_num} = {
-					sura => $1,
-					ayah => $2,
-					text => $4
-				};
+				if ($pages->{$page_num}->{$line_num}){
+					$pages->{$page_num}->{$line_num}->{text} .= $4;
+				}
+				else {
+					$pages->{$page_num}->{$line_num} = {
+						sura => $1,
+						ayah => $2,
+						text => $4
+					};
+				}
 				if (($2==0) || (defined($6))){ $line_num++; }	
 			} while ($line =~ s/^.*?onclick=ClickAyaArea\(([\d]+),([\d]+)\) target=_top>(<center>)?([^<]+)(<\/center>)?<\/A>(<br>)?//);
 		}
