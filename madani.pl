@@ -59,6 +59,10 @@ else {
 }
 
 sub generate_batch {
+	for (my $i=1; $i<=604; $i++){
+		print "processing page $i...\n";
+		$self->generate_page($i);
+	}
 }
 
 sub generate_page {
@@ -88,7 +92,6 @@ sub generate_page {
 	my @ll = @{$data{$longest_line}};
 	(my $font_size, $longest_width) = 
 		$self->_get_best_font_size($ll[1], $page_v, $longest_width);
-  print "got $font_size @ $longest_width\n";
 
 	my $rows = keys(%data);
 	my $sub_phi = 1 + ($phi * $phi * $phi);
@@ -129,7 +132,9 @@ sub generate_page {
 		$_draw_line->($key-1, $ayah, @{$data{$key}}[1]);
 	}
 
-	open OUTPUT, ">out.png";
+	my $path = "./output/width_$width/";
+	eval { `mkdir -p $path` };
+	open OUTPUT, ">$path/$page_v.png";
 	binmode OUTPUT;
 	print OUTPUT $gd->png;
 }
