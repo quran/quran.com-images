@@ -271,8 +271,7 @@ AyatServices("/quran/ayat_services.asp?l=arb&nsora="+nCurrSora+"&naya="+nCurrAya
 </TD></TR></TBODY></TABLE></CENTER>
 
 					<SPAN class=sc_F1>
-					<A name=97_0></A><A class=black onclick=ClickAyaArea(97,0) target=_top><center>
-							&#64340;&#64341;&#64342;</center></A>
+					<A name=97_0></A><A class=black onclick=ClickAyaArea(97,0) target=_top><center>&#64340;&#64341;&#64342;</center></A>
 					</SPAN>
 					<SPAN class=sc_F0><A name=97_1></A><A class=black style='cursor: pointer; cursor: myhand;' onclick=ClickAyaArea(97,1) target=_top>&#64337;&#64338;&#64339;&#64340;&#64341;&#64342;</A><A name=97_2></A><A class=black style='cursor: pointer; cursor: myhand;' onclick=ClickAyaArea(97,2) target=_top>&#64343;&#64344;&#64345;&#64346;&#64347;&#64348;</A><br><A name=97_3></A><A class=black style='cursor: pointer; cursor: myhand;' onclick=ClickAyaArea(97,3) target=_top>&#64349;&#64350;&#64351;&#64352;&#64353;&#64354;&#64355;</A><A name=97_4></A><A class=black style='cursor: pointer; cursor: myhand;' onclick=ClickAyaArea(97,4) target=_top>&#64356;&#64357;&#64358;</A><br><A name=97_4></A><A class=black style='cursor: pointer; cursor: myhand;' onclick=ClickAyaArea(97,4) target=_top>&#64359;&#64360;&#64361;&#64362;&#64363;&#64364;&#64365;</A><A name=97_5></A><A class=black style='cursor: pointer; cursor: myhand;' onclick=ClickAyaArea(97,5) target=_top>&#64366;&#64367;&#64368;&#64369;&#64370;&#64371;</A><br>
 <CENTER>

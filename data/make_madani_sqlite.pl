@@ -26,6 +26,7 @@ for (1..604) {
 	$pages->{$_} = {};
 	my $line_num = 1;
 	my $page_num = $_;
+	my $text_mod = 0;
 	my $page = sprintf('%03d', $_);
 	open my $fh, "./pages/$page.asp";
 	while (my $line =  <$fh>) {
@@ -33,6 +34,7 @@ for (1..604) {
 		# a break indicates a new line in the ayah.
 		if ($line =~ s/^.*?onclick=ClickAyaArea\(([\d]+),([\d]+)\) target=_top>(<center>)?([^<]+)(<\/center>)?<\/A>(<br>)?//){
 			do {
+				$text_mod++;
 				if ($pages->{$page_num}->{$line_num}){
 					$pages->{$page_num}->{$line_num}->{text} .= $4;
 				}
@@ -43,8 +45,15 @@ for (1..604) {
 						text => $4
 					};
 				}
-				if (($2==0) || (defined($6))){ $line_num++; }	
+				if (($2==0) || (defined($6))){ $line_num++; $text_mod = 0; }	
 			} while ($line =~ s/^.*?onclick=ClickAyaArea\(([\d]+),([\d]+)\) target=_top>(<center>)?([^<]+)(<\/center>)?<\/A>(<br>)?//);
+
+			# if text has been modified without increasing the line number,
+			# there's probabably a missing <br>, so improvise..
+			if ($text_mod > 0){
+				$text_mod = 1;
+				$line_num++;
+			}
 		}
 		# this indicates a header for the sura at hand, and the sura name is text
 		elsif ($line =~ s/^.*?align="center" class=sc_F1>([^<]+)//){
@@ -54,7 +63,7 @@ for (1..604) {
 				text => $1 
 			};
 			$line_num++;
-		}	
+		}
 	}
 	close $fh;
 }
