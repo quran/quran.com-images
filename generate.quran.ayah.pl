@@ -216,11 +216,11 @@ __END__
 
 =head1 NAME
 
-auto.pl - Generate Qur'an Images for Ayahs
+generate.quran.ayah.pl - Generate Qur'an Images for Ayahs
 
 =head1 SYNOPSIS
 
-auto.pl --sura n --ayah n [options]
+generate.quran.ayah.pl --sura n --ayah n [options]
 
 
 =head1 OPTIONS
@@ -232,7 +232,7 @@ auto.pl --sura n --ayah n [options]
 	-e    --em       scale font size by given factor
 	-h    --help     print this help message and exit
 
-e.g. './auto.pl -s 2 -a 255 --width=480 --em=0.9' would output Ayah
+e.g. './generate.quran.ayah.pl -s 2 -a 255 --width=480 --em=0.9' would output Ayah
      Al-Kursi (2:255) as a png image in the sub 'output' directory.
 
 i.e. './output/width_480/em_0.9/2_255.png' the image for 480 pixels

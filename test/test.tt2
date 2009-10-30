@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.1//EN" 
+   "http://www.w3.org/TR/xhtml11/DTD/xhtml11.dtd">
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+	<head>
+		<meta http-equiv="Content-Type" content="text/html;charset=utf-8"/>
+		<title>Sura [% sura %], Page [% page_current %]</title>
+		<style type="text/css">
+			* { margin: 0; padding: 0; position: relative; }
+			html { font-size: 10px; font-family: sans-serif; }
+			html, body, div, ul { display: block; width: 100%; }
+			ul, li { float: left; list-style-type: none; }
+			ul { width: 100%; }
+			li { display: inline; font-size: 5em; line-height: 0.75em; width: 33%; }
+			ul > li:first-child { text-align: left; }
+			ul > li:last-child > a { margin-right: 0; }
+			ul > li:nth-child(2) { top: 12px; font-size: 30px; }
+			ul > li:last-child { text-align: right; }
+			ul > li > a { margin: 0.25em; margin-top: 1em; margin-bottom: 0; text-decoration: none; color: black; }
+			ul > li > a:active { color: green; }
+			p.clear { clear: both; margin: 2em; padding: 3em; }
+			html, body { overflow-x: hidden; }
+			body { background-color: #fff; width: 100%; text-align: center; }
+			#wrap {  }
+			#content { }
+		</style>
+	</head>
+	<body>
+		<div id="wrap">
+			<div id="content"><img src="../output/width_[% width %]/[% page_img %]"/></div>
+			<div><ul>
+					<li>[% IF page_next %]<a href="?page=[% page_next %]&width=[% width %]">[% END %]&#171;[% IF page_next %]</a>[% END %]</li>
+					<li>[% page_current %]</li>
+					<li>[% IF page_prev %]<a href="?page=[% page_prev %]&width=[% width %]">[% END %]&#187;[% IF page_prev %]</a>[% END %]</li>
+			</ul></div>
+		</div>
+		<p class="clear"/>
+	</body>
+</html>
