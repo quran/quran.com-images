@@ -52,3 +52,6 @@ Required modules
 	GD::Text::Align
 	DBI
 	DBD::SQLite2
+
+TODO
+	Major refactoring / code cleanup
