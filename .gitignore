@@ -2,4 +2,6 @@
 *.swo
 *.png
 output/*
+test_output
 *.db-journal
+.tmp
