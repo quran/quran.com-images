@@ -50,6 +50,8 @@ pod2usage(1) if $help;
 
 $scale = sprintf('%.1f',$scale);
 my $height = $width * PHI;
+my $font_size = $width / 20;
+my $line_spacing = ($height - 15 * $font_size) / 15;
 
 die "Minimal parameters are --width and --page for a single page, or --width \
      and --batch for the entire Qur'an" unless $width and ($batch or $page);
@@ -63,7 +65,7 @@ else {
 
 sub generate_batch {
 	for (my $page = 1; $page <= 604; $page++) {
-		print "Generating page $page...\n";
+		print "Generating page $page for width $width...\n";
 		$self->generate_page($page);
 	}
 }
@@ -95,10 +97,6 @@ sub generate_page {
 	$sth->finish;
 
 	my ($ayah, $text) = @{$hash->{$longest_line}};
-	(my $font_size, $longest_line_width) =
-		$self->_get_best_font_size($text, $page_str, $longest_line_width);
-
-	my $line_spacing = ($height - 15 * $font_size) / 15; # testing a hypothesis
 
 	my $gd = GD::Image->new($width, $height + $line_spacing / 2);
 	my $white = $gd->colorAllocateAlpha(255, 255, 255, 127);
@@ -136,34 +134,6 @@ sub generate_page {
 	binmode OUTPUT;
 	print OUTPUT $gd->png(9); # 0 is highest quality, 9 is highest compression level
 } # sub generate_page
-
-sub _get_best_font_size {
-	my ($self, $text, $page, $longest_line_width) = @_;
-
-	my $font_step = 2;
-	my $font_size = 24;
-	my $line_width = $longest_line_width;
-
-	# line width is greater than desired width
-	if ($longest_line_width > $width) { # here the variable $width refers to the global--needs refactoring to be more clear
-		$font_step = -2;
-		while ($line_width > $width) {
-			$font_size += $font_step;
-			$line_width = $self->_get_line_width($text, $page, $font_size);
-		} # keep going until line_width < width
-		return ($font_size, $line_width);
-	}
-	else { # line width is less than desired width
-		my $prev_line_width = 0;
-		while ($line_width < $width){
-			$font_size += $font_step;
-			$prev_line_width = $line_width;
-			$line_width = $self->_get_line_width($text, $page, $font_size);
-		} # keep going until line_width > width
-		# and then return the line_width just before we stepped over width
-		return ($font_size - $font_step, $prev_line_width);
-	}
-} # sub _get_best_font_size
 
 sub _get_line_width {
 		my ($self, $text, $page, $font_size) = @_;
