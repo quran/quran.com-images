@@ -51,4 +51,5 @@ Required modules
 	DBD::SQLite2
 
 TODO
+	Make font size consistent from page to page when generating with --batch
 	Major refactoring / code cleanup
