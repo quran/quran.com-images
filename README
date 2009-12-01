@@ -20,6 +20,9 @@ or,
 	./generate.quran.ayah.pl -width 262 -em 1.38 -sura 2 -ayah 255
 etc...
 
+Example output (entire page)
+	http://images.quran.com/quran_images/output/view.cgi?page=293
+
 Example output (ayat)
 	http://images.quran.com/quran_images/output/width_480/em_0.9/2_255.png
 	http://images.quran.com/quran_images/output/width_480/em_0.9/2_282.png
@@ -40,12 +43,6 @@ Example output (ayat)
 
 	http://images.quran.com/quran_images/output/width_1280/em_3.6/2_255.png
 	http://images.quran.com/quran_images/output/width_1280/em_3.6/2_282.png
-
-Example output (entire page)
-	http://images.quran.com/quran_images/output/width_480/016.png
-
-Simple demo application:
-	http://images.quran.com/quran_images/output/width_480/view.cgi?page=16
 
 Required modules
 	GD
