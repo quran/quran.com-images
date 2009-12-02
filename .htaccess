@@ -1,0 +1,10 @@
+Options +ExecCGI
+AddHandler cgi-script .cgi
+
+RewriteEngine On
+RewriteBase /
+RewriteRule ^$ view.cgi
+RewriteRule ^width/([\d]+)$ view.cgi?width=$1
+RewriteRule ^page/([\d]+)$ view.cgi?page=$1
+RewriteRule ^width/([\d]+)/page/([\d]+)$ view.cgi?width=$1&page=$2
+RewriteRule ^page/([\d]+)/width/([\d]+)$ view.cgi?width=$2&page=$1
