@@ -20,9 +20,9 @@
 		</style>
 	</head>
 	<body>
-		<div><ul><li>[% IF next %]<a href="?page=[% next %]&width=[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="?page=[% previous %]&width=[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
+		<div><ul><li>[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
 		<div class="image"><img src="/output/width_[% width %]/[% current %].png"/></div>
-		<div><ul><li>[% IF next %]<a href="?page=[% next %]&width=[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="?page=[% previous %]&width=[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
+		<div><ul><li>[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
 		<p class="clear"/>
 	</body>
 </html>
