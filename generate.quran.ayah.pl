@@ -9,7 +9,6 @@
 # Authors/Contributors
 #  Ahmed El-Helw
 #  Nour Sharabash
-#  Bassem Shama
 
 # The code is copyleft GPL (read: free) but the actual fonts and pages (in the 'data' 
 # directory) belong to the King Fahed Complex in Saudia Arabia
@@ -19,37 +18,45 @@ use strict;
 use warnings;
 
 use DBI;
-my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/sura_ayah_page_text.sqlite2.db","","",
-	{ RaiseError => 1, AutoCommit => 0 });
-
 use GD;
 use GD::Text;
 use GD::Text::Align;
-
+use GD::Text::Wrap;
 use Getopt::Long;
 use Pod::Usage;
-
 use List::Util qw/min max/;
 
-my ($sura, $ayah, $batch, $width, $em, $help) = (undef, undef, undef, 640, 1.0, 0);
+# we're using Phi because the height/width and width/height ratios of text
+# from pages from a madani mushaf are approximately 1.61 and 0.61, respectively
+use constant PHI => ((sqrt 5) + 1) / 2;
+use constant phi => (((sqrt 5) + 1) / 2) - 1;
 
 my $self = \&main;
 bless $self;
 
+my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/madani.sqlite2.db","","",
+	{ RaiseError => 1, AutoCommit => 0 });
+my $dbh2 = DBI->connect("dbi:SQLite2:dbname=./data/sura_ayah_page_text.sqlite2.db","","",
+	{ RaiseError => 1, AutoCommit => 0 });
+
+my ($sura, $ayah, $batch, $width, $scale, $help) = (undef, undef, undef, 640, 1.0, 0);
+
 GetOptions(
-	'sura=i' => \$sura,
+	'surah=i' => \$sura,
 	'ayah=i' => \$ayah,
 	'batch' => \$batch,
 	'width:i' => \$width,
-	'em:f' => \$em,
+	'scale:f' => \$scale,
 	'help|?' => \$help,
 ) or pod2usage(1);
 pod2usage(1) if $help;
 
-$em = sprintf('%.1f',$em);
+$scale = sprintf('%.1f',$scale);
+my $font_size = $width / 20;
+my $line_spacing = $font_size; #($height - 15 * $font_size) / 15;
 
-die "Minimal parameters are both --sura and --ayah for a single verse, or \
-use --batch to generate images for the entire Qur'an" unless ($batch or ($sura and $ayah));
+die "Minimal parameters are both --sura and --ayah for a single verse, or use \
+     --batch to generate images for the entire Qur'an" unless $batch or ($sura and $ayah);
 
 if ($batch) {
 	$self->generate_batch;
@@ -59,42 +66,58 @@ else {
 }
 
 sub generate_batch {
-	my ($self) = @_;
-
-	my $sth = $dbh->prepare(
+	my $sth = $dbh2->prepare(
 		"select sura, ayah from sura_ayah_page_text order by sura asc, ayah asc");
-
-	$sth->execute();
-	while (my $row = $sth->fetchrow_hashref) {
-		$self->generate_image($row->{sura}, $row->{ayah});
+	$sth->execute;
+	while (my @row = $sth->fetchrow_array) {
+		$self->generate_image(@row);
 	}
-	$sth->finish();
+	$sth->finish;
 }
 
 sub generate_image {
 	my ($self, $sura, $ayah) = @_;
-
-	my $phi = (((sqrt(5)+1)/2) - 1);
-
-	my @row = $dbh->selectrow_array(
+	my ($page, $text) = $dbh2->selectrow_array(
 		"select page, text from sura_ayah_page_text where sura = $sura and ayah = $ayah");
+	$text =~ s/[\r\n]+//g;
+	my @text = split /;/, $text;
+	pop @text; # remove ayah glyph
+	my $hizb = $dbh2->selectrow_array(
+		"select hizb from sura_ayah_info where sura = $sura and ayah = $ayah");
+	if ($hizb) { # remove hizb mark
+		shift @text;
+	}
+	$text = join ';', @text;
+	$text .= ';' if $text !~ /;$/;
+	$text = $self->_reverse_text($text);
 
-	my $page = $row[0];
-	my $text = $self->_reverse_text($row[1]);
-	my $font_size = 24;
-	$font_size = $font_size * $em;
-	# arbitrary size adjustment for sura 1 and sura 2, verses 1 through 5 that seems about right
-	$font_size *= 1 + $phi * $phi * $phi if $sura == 1 || $sura == 2 && $ayah <= 5;
-	my $padding = $font_size * $phi + ($font_size * $phi * $phi * $phi);
-	my $inner_width = $width - (2*$padding);
+	my $_last_line = $dbh->selectrow_array(
+		"select max(line) from madani_page_text where sura = $sura and ayah = $ayah");
+	my $sth = $dbh->prepare(
+		"select line, text from madani_page_text where sura = $sura and ayah = $ayah order by line asc");
+	$sth->execute;
+	while (my ($_line, $_text) = $sth->fetchrow_array) {
+		$_text =~ s/[\r\n]+//g;
+		$_text = $self->_reverse_text($_text);
+		if ($_line < $_last_line) {
+			$text =~ s/$_text/&#32;&#32;$_text&#32;&#32;/g;
+			#print "text vs _text:\n$text\n$_text\n";
+		}
+	}
+	$sth->finish;
+
+	$page = sprintf('%03d', $page);
 
   my $gd_text = GD::Text->new() or die GD::Text::error();
+
 	$gd_text->set_font("./data/fonts/QCF_P$page.TTF", $font_size) or die $gd_text->error;
   $gd_text->set_text($text);
-  my $_width = $gd_text->get('width');
+
+  my $gd_text_width = $gd_text->get('width');
+
 	my $_wrap_text = sub {
 		my $text = shift;
-		my @line = split /\n/, $text;
+		my @line = split /\n/, $text; # hmm...
 		my %longest = (
 			width => 0,
 			line  => 0
@@ -102,24 +125,21 @@ sub generate_image {
 		for (my $i = 0; $i < @line; $i++) {
 			my $line_text = $line[$i];
 			$gd_text->set_text($line_text);
-			my $width = $gd_text->get('width');
-			my $height = $gd_text->get('height');
-			my $gd = GD::Image->new($width, $height);
+			my $_gd_text_width = $gd_text->get('width');
+			my $_gd_text_height = $gd_text->get('height');
+			my $gd = GD::Image->new($_gd_text_width, $_gd_text_height);
 			my $align = GD::Text::Align->new($gd,
-				valign => 'top',
-				halign => 'right'#,
-				#color  => $black,
+				valign => 'center',
+				halign => 'right'
 			);
 			$align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
 			$align->set_text($line_text);
-			my $coord_x = $inner_width + $padding;
-			my $coord_y = $padding * $phi;
-			my @box = $align->bounding_box($coord_x, $coord_y, 0);
-			$width = max($box[2], $box[4]) - max($box[0], $box[6]); # Removes horizontal whitespace
+			my @box = $align->bounding_box($_gd_text_width, 0, 0);
+			$_gd_text_width = max($box[2], $box[4]) - min($box[0], $box[6]);
 			do {
-				$longest{width} = $width;
+				$longest{width} = $_gd_text_width;
 				$longest{line}  = $i;
-			} if ($width > $longest{width});
+			} if ($_gd_text_width > $longest{width});
 		}
 		my @line_text = split /;/, $line[$longest{line}];
 		my $word = shift @line_text;
@@ -140,23 +160,24 @@ sub generate_image {
 		$text = join "\n", @line;
 		return $text;
 	};
-	while ($_width > $width) {
+	while ($gd_text_width > $width) {
 		$text = $_wrap_text->($text);
 		$gd_text->set_text($text);
-		$_width = $gd_text->get('width');
+		$gd_text_width = $gd_text->get('width');
 	}
-  my $_height = $gd_text->get('height');
 	my @line = split /\n/, $text;
 	my $lines = scalar @line;
-	my $sub_phi = 1 + ($phi * $phi * $phi);
-	my $line_spacing = $font_size * $sub_phi;
-	my $height = $lines * $_height + ($lines - 1) * $line_spacing + 2*$padding;
+	my $height = $lines * $font_size + ($lines - 1) * $line_spacing;
 
-	my $gd = GD::Image->new($width, $height);#($inner_width + (2*$padding)), $height);#($height + (2*$padding)));
+
+	my $width_hack = $width + $line_spacing;
+	my $height_hack = $height + 2 * $line_spacing;
+
+	my $gd = GD::Image->new($width_hack, $height_hack);
 	my $white = $gd->colorAllocate(255,255,255);
 	my $black = $gd->colorAllocate(0,0,0);
 	$gd->transparent($white);
-	$gd->interlaced('true');
+	$gd->interlaced('false'); # maybe set true for anti-aliasing--test it
 
 	my $_draw_line = sub {
 		my ($i, $text) = @_;
@@ -167,45 +188,55 @@ sub generate_image {
 		);
 		$align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
 		$align->set_text($text);
-		my $coord_x = $inner_width + $padding;
-		my $coord_y = $padding * $phi + $i * ($font_size + $line_spacing);
-		$coord_y = $i * ($font_size + $line_spacing);
+		#print "$font_size $line_spacing\n";
+		my $coord_x = $width;
+		my $coord_y = $line_spacing + $i * ($font_size + $line_spacing);
 		my @box = $align->bounding_box($coord_x, $coord_y, 0);
-		my $h_foo = max($box[1], $box[3]) - min($box[5], $box[7]);
-		if ($sura == 1) {
-			$coord_y += 5;
-		}
-		elsif ($sura == 2 && $ayah <= 5) {
-			$coord_y += 13;
-		}
-		else {
-			$coord_y += 21;
-		}
-
-		$coord_x += $width - max($box[2], $box[4]) - 3; # Removes horizontal whitespace
-		print "$sura $ayah\n";
 		$align->draw($coord_x, $coord_y, 0);
 	};
 
-
 	for (my $i = 0; $i < @line; $i++) {
 		my $text = $line[$i];
+		$text =~ s/^(&#32;)+//;
+		$text =~ s/(&#32;)+$//;
 		$_draw_line->($i, $text);
 	}
 
-	my $path = './output/width_'. $width .'/em_'. $em .'/';
+	my $min_x = $width_hack;
+	my $min_y = $height_hack;
+	my $max_x = 0;
+	my $max_y = 0;
+
+	for (my $x = 0; $x <= $width_hack; $x++) {
+		for (my $y = 0; $y <= $height_hack; $y++) {
+			if ($gd->getPixel($x, $y)) {
+				$min_x = $x if $x < $min_x;
+				$min_y = $y if $y < $min_y;
+				$max_x = $x if $x > $max_x;
+				$max_y = $y if $y > $max_y;
+			}
+		}
+	}
+
+	my $gd_hack = GD::Image->new($width, $max_y - $min_y);
+	my $gd_hack_white = $gd_hack->colorAllocate(255,255,255);
+	$gd_hack->transparent($gd_hack_white);
+	$gd_hack->interlaced('false'); # maybe set true for anti-aliasing--test it
+	$gd_hack->copy($gd, $width - ($max_x - $min_x), 0, $min_x, $min_y, $max_x - $min_x, $max_y - $min_y);
+	#$gd_hack->copy($gd, 0, 0, 100, 100, 100, 100);
+
+	my $path = './output/width_'. $width .'/em_'. $scale .'/';
 	my $file = $sura ."_". $ayah .".png";
 	eval { `mkdir -p $path` };
 	open OUTPUT, ">". $path . $file;
 	binmode OUTPUT;
-	print OUTPUT $gd->png;
-
+	print OUTPUT $gd_hack->png(9);
 }
 
 sub _reverse_text {
 	my ($self, $text) = @_;
 	my @text = split /;/, $text;
-	   @text = reverse sort @text;
+	@text = reverse sort @text;
 	$text = join ';', @text;
 	$text .= ';';
 	return $text;

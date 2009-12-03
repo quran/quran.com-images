@@ -21,7 +21,6 @@ use DBI;
 use GD;
 use GD::Text;
 use GD::Text::Align;
-#use GD::Text::Wrap;
 use Getopt::Long;
 use Pod::Usage;
 use List::Util qw/min max/;
