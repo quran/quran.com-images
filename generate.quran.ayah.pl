@@ -53,6 +53,7 @@ pod2usage(1) if $help;
 
 $scale = sprintf('%.1f',$scale);
 my $font_size = $width / 20;
+$font_size *= $scale;
 my $line_spacing = $font_size; #($height - 15 * $font_size) / 15;
 
 die "Minimal parameters are both --sura and --ayah for a single verse, or use \
