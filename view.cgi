@@ -30,7 +30,7 @@ my $cgi = new CGI;
 my $params = $cgi->Vars;
 
 $params->{page} = 1 if !defined $params->{page} || $params->{page} !~ /^[\d]+$/ || $params->{page} < 1 || $params->{page} > 604;
-$params->{width} = 1000 if !defined $params->{width} || $params->{width} !~ /^[\d]+$/ || $params->{width} < 310 || $params->{width} > 2000;
+$params->{width} = 1000 if !defined $params->{width} || $params->{width} !~ /^[\d]+$/ || $params->{width} < 100 || $params->{width} > 2000;
 
 my $ok = 1;
 my $target = './output/width_'. $params->{width} .'/'. $params->{page} .'.png';

@@ -9,7 +9,7 @@
 		<style type="text/css">
 			* { margin: 0; padding: 0; }
 			html { font-size: [% width / 100 %]px; font-family: sans-serif; }
-			html, body, div, ul { display: block; width: [% width %]px; }
+			html, body, div, ul { display: block; width: [% width %]px; margin: 0 auto; }
 			ul, li { float: left; list-style-type: none; }
 			li { width: 50%; padding: 0; margin: 0; text-decoration: none; color: black; font-size: 10em; }
 			li > a { text-decoration: none; color: black; }
@@ -20,9 +20,9 @@
 		</style>
 	</head>
 	<body>
-		<div><ul><li>[% IF next %]<a href="?page=[% next %]&width=[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="?page=[% previous %]&width=[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
+		<div><ul><li>[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
 		<div class="image"><img src="/output/width_[% width %]/[% current %].png"/></div>
-		<div><ul><li>[% IF next %]<a href="?page=[% next %]&width=[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="?page=[% previous %]&width=[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
+		<div><ul><li>[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
 		<p class="clear"/>
 	</body>
 </html>
