@@ -9,20 +9,28 @@
 		<style type="text/css">
 			* { margin: 0; padding: 0; }
 			html { font-size: [% width / 100 %]px; font-family: sans-serif; }
-			html, body, div, ul { display: block; width: [% width %]px; }
+			html, body, div, ul { display: block; width: [% width %]px; margin: 0 auto; }
 			ul, li { float: left; list-style-type: none; }
-			li { width: 50%; padding: 0; margin: 0; text-decoration: none; color: black; font-size: 10em; }
+			li { width: 50%; padding: 0; margin: 0; text-decoration: none; color: black; font-size: [% width / 10 %]px; }
 			li > a { text-decoration: none; color: black; }
 			li > a:hover { text-decoration: none; color: #3399CC; }
 			ul > li:last-child { text-align: right; }
 			p.clear { clear: both; margin: 1px; padding: 1px; }
 			div.image { text-align: center; }
+			/*
+			div.image { position: relative; top: -[% width / 10%]px; text-align: center; }
+			div.nav { z-index: -1; position: relative; }
+			div.nav.top { top: 0; }
+			div.nav.bottom { bottom: [% (width / 100) + (width / 10) * 2 %]px; }
+			li.left { position: relative; left: -[% width / 20 %]px; }
+			li.right { position: relative; right: -[% width / 20 %]px; }
+			*/
 		</style>
 	</head>
 	<body>
-		<div><ul><li>[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
+		<div class="nav top"><ul><li class="left">[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li class="right">[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
 		<div class="image"><img src="/output/width_[% width %]/[% current %].png"/></div>
-		<div><ul><li>[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li>[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
+		<div class="nav bottom"><ul><li class="left">[% IF next %]<a href="/page/[% next %]/width/[% width %]">[% END %]&#171;[% IF next %]</a>[% END %]</li><li class="right">[% IF previous %]<a href="/page/[% previous %]/width/[% width %]">[% END %]&#187;[% IF previous %]</a>[% END %]</li></ul></div>
 		<p class="clear"/>
 	</body>
 </html>
