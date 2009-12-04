@@ -15,7 +15,6 @@
 # Their URL: http://www.qurancomplex.com
 
 # TODO
-# don't let ayah number sit on a line by itself
 # fix weird indentation thing
 
 use strict;
@@ -140,15 +139,14 @@ sub generate_image {
 			}
 		}
 
-		# shift the word off for now, as we might put it on the next line. we'll put it back if we've only got one line.
-		my @word = split /;/, $line[$max{line}];
-		my $word = shift @word;
+		my @this_line = split /;/, $line[$max{line}];
+		my $word = shift @this_line; # remove and store the last word from the longest line
 
-		$line[$max{line}] = join ';', @word;
+		$line[$max{line}] = join ';', @this_line; # reconstruct the line which we just shifted a word from
 		$line[$max{line}] .= ';';
 
 		my $next_line_index = $max{line} + 1;
-		if (scalar(@line) > $next_line_index) { # if another line exists
+		if (scalar(@line) > $next_line_index) { # if a next line exists
 			my @next_line = split /;/, $line[$next_line_index];
 
 			push @next_line, $word; # then put the word on the next line
@@ -156,7 +154,7 @@ sub generate_image {
 			$line[$next_line_index] = join ';', @next_line;
 			$line[$next_line_index] .= ';';
 		}
-		else { # otherwise put it back on the same line
+		else { # otherwise we need to push a new line
 			$word .= ';';
 			push @line, $word;
 		}
@@ -165,7 +163,7 @@ sub generate_image {
 		return $_text;
 	};
 
-	while ($text_width > $width) { # wrap the text
+	while ($text_width > $width) { # wrap the text ONLY if the text width exceeds our maximum specified ($width)
 		$text = $_wrap_text->($text);
 		$gd_text->set_text($text);
 		$text_width = $gd_text->get('width');
@@ -173,6 +171,36 @@ sub generate_image {
 
 	my @line = split /\n/, $text;
 	my $lines = scalar @line;
+
+	for (my $i = 0; $i < $lines; $i++) {
+		my $_text = $line[$i];
+		$_text =~ s/^(&#32;)+//; # get rid of any spaces at the beginning and end of the line
+		$_text =~ s/(&#32;)+$//; # if these accidentally ended up there
+		$line[$i] = $_text;
+	}
+
+	if ($lines > 1) { # don't let ayah number sit on a line by itself
+		print "Debug: lines > 1 ($lines)\n";
+		my @last_line = split /;/, $line[$lines - 1];
+		my $words_on_last_line = scalar(@last_line);
+
+		print "Debug: words_on_last_line = $words_on_last_line\n";
+		if ($words_on_last_line == 1) {
+			print "Debug: words_on_last_line == 1\n";
+			my @line_before_last_line = split /;/, $line[$lines - 2];
+			my $word = shift @line_before_last_line;
+
+			push @last_line, $word; # put the last word from the line before the last line on the last line instead
+
+			$line[$lines - 2] = join ';', @line_before_last_line;
+			$line[$lines - 2] .= ';';
+		}
+
+		$line[$lines - 1] = join ';', @last_line;
+		$line[$lines - 1] .= ';';
+	}
+	$text = join "\n", @line;
+
 	my $height = $lines * $font_size + ($lines - 1) * $line_spacing;
 
 	my $width_hack = 3 * $width; # let's make it big
@@ -205,8 +233,6 @@ sub generate_image {
 
 	for (my $i = 0; $i < @line; $i++) {
 		my $_text = $line[$i];
-		$_text =~ s/^(&#32;)+//; # get rid of any spaces at the beginning and end of the line
-		$_text =~ s/(&#32;)+$//; # if these accidentally ended up there
 		$_draw_line->($i, $_text);
 	}
 
