@@ -14,6 +14,10 @@
 # directory) belong to the King Fahed Complex in Saudia Arabia
 # Their URL: http://www.qurancomplex.com
 
+# TODO
+# don't let ayah number sit on a line by itself
+# fix weird indentation thing
+
 use strict;
 use warnings;
 
@@ -26,17 +30,10 @@ use Getopt::Long;
 use Pod::Usage;
 use List::Util qw/min max/;
 
-# we're using Phi because the height/width and width/height ratios of text
-# from pages from a madani mushaf are approximately 1.61 and 0.61, respectively
-use constant PHI => ((sqrt 5) + 1) / 2;
-use constant phi => (((sqrt 5) + 1) / 2) - 1;
-
 my $self = \&main;
 bless $self;
 
-my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/madani.sqlite2.db","","",
-	{ RaiseError => 1, AutoCommit => 0 });
-my $dbh2 = DBI->connect("dbi:SQLite2:dbname=./data/sura_ayah_page_text.sqlite2.db","","",
+my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/text.sqlite2.db","","",
 	{ RaiseError => 1, AutoCommit => 0 });
 
 my ($sura, $ayah, $batch, $width, $scale, $help) = (undef, undef, undef, 640, 1.0, 0);
@@ -51,10 +48,7 @@ GetOptions(
 ) or pod2usage(1);
 pod2usage(1) if $help;
 
-$scale = sprintf('%.1f',$scale);
-my $font_size = $width / 20;
-$font_size *= $scale;
-my $line_spacing = $font_size; #($height - 15 * $font_size) / 15;
+$scale = sprintf('%.2f',$scale);
 
 die "Minimal parameters are both --sura and --ayah for a single verse, or use \
      --batch to generate images for the entire Qur'an" unless $batch or ($sura and $ayah);
@@ -67,7 +61,7 @@ else {
 }
 
 sub generate_batch {
-	my $sth = $dbh2->prepare(
+	my $sth = $dbh->prepare(
 		"select sura, ayah from sura_ayah_page_text order by sura asc, ayah asc");
 	$sth->execute;
 	while (my @row = $sth->fetchrow_array) {
@@ -78,139 +72,149 @@ sub generate_batch {
 
 sub generate_image {
 	my ($self, $sura, $ayah) = @_;
-	my ($page, $text) = $dbh2->selectrow_array(
+
+	my ($page, $text) = $dbh->selectrow_array(
 		"select page, text from sura_ayah_page_text where sura = $sura and ayah = $ayah");
-	$text =~ s/[\r\n]+//g;
+
+=cut
 	my @text = split /;/, $text;
 	pop @text; # remove ayah glyph
-	my $hizb = $dbh2->selectrow_array(
+	my $hizb = $dbh->selectrow_array(
 		"select hizb from sura_ayah_info where sura = $sura and ayah = $ayah");
-	if ($hizb) { # remove hizb mark
-		shift @text;
-	}
+	shift @text if $hizb;
 	$text = join ';', @text;
 	$text .= ';' if $text !~ /;$/;
-	$text = $self->_reverse_text($text);
+=cut
 
-	my $_last_line = $dbh->selectrow_array(
+	$text = $self->_reverse_text($text);
+	$page = sprintf('%03d', $page);
+
+	my $font_size = ($width / 20) * $scale;
+	if ($page == 1 || $page == 2) {
+		$font_size = $font_size * (4/3);
+	}
+	my $line_spacing = $font_size;
+
+	# we're going to adjust a problem with spacing between words where line breaks occur in a mushaff
+	my $max_line = $dbh->selectrow_array(
 		"select max(line) from madani_page_text where sura = $sura and ayah = $ayah");
 	my $sth = $dbh->prepare(
 		"select line, text from madani_page_text where sura = $sura and ayah = $ayah order by line asc");
 	$sth->execute;
-	while (my ($_line, $_text) = $sth->fetchrow_array) {
-		$_text =~ s/[\r\n]+//g;
+	while (my ($line, $_text) = $sth->fetchrow_array) {
 		$_text = $self->_reverse_text($_text);
-		if ($_line < $_last_line) {
-			$text =~ s/$_text/&#32;&#32;$_text&#32;&#32;/g;
-			#print "text vs _text:\n$text\n$_text\n";
+		if ($line < $max_line) {
+			$text =~ s/$_text/&#32;&#32;$_text&#32;&#32;/g; # add spaces around that segment of text
 		}
 	}
 	$sth->finish;
-
-	$page = sprintf('%03d', $page);
 
   my $gd_text = GD::Text->new() or die GD::Text::error();
 
 	$gd_text->set_font("./data/fonts/QCF_P$page.TTF", $font_size) or die $gd_text->error;
   $gd_text->set_text($text);
 
-  my $gd_text_width = $gd_text->get('width');
+  my $text_width = $gd_text->get('width');
 
-	my $_wrap_text = sub {
-		my $text = shift;
-		my @line = split /\n/, $text; # hmm...
-		my %longest = (
+	my $_wrap_text = sub { # sub-routine for wrapping the text
+		my $_text = shift;
+		my @line = split /\n/, $_text; # if you're wondering where this comes from see the line right above this function's return statement
+		my %max = (
 			width => 0,
 			line  => 0
 		);
+
 		for (my $i = 0; $i < @line; $i++) {
-			my $line_text = $line[$i];
-			$gd_text->set_text($line_text);
-			my $_gd_text_width = $gd_text->get('width');
-			my $_gd_text_height = $gd_text->get('height');
-			my $gd = GD::Image->new($_gd_text_width, $_gd_text_height);
-			my $align = GD::Text::Align->new($gd,
-				valign => 'center',
-				halign => 'right'
-			);
-			$align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
-			$align->set_text($line_text);
-			my @box = $align->bounding_box($_gd_text_width, 0, 0);
-			$_gd_text_width = max($box[2], $box[4]) - min($box[0], $box[6]);
-			do {
-				$longest{width} = $_gd_text_width;
-				$longest{line}  = $i;
-			} if ($_gd_text_width > $longest{width});
+			my $_text = $line[$i];
+
+			$gd_text->set_text($_text);
+
+			my $_text_width = $gd_text->get('width');
+			my $_text_height = $gd_text->get('height');
+
+			print "Debug: gd_text _text_width $_text_width\n";
+
+			if ($_text_width > $max{width}) {
+				$max{width} = $_text_width;
+				$max{line}  = $i;
+			}
 		}
-		my @line_text = split /;/, $line[$longest{line}];
-		my $word = shift @line_text;
-		$line[$longest{line}] = join ';', @line_text;
-		$line[$longest{line}] .= ';';
-		my $i_plus = $longest{line} + 1;
-		if (@line > $i_plus) {
-			my @next_line_down = split /;/, $line[$i_plus];
-			push @next_line_down, $word;
-			$line[$i_plus] = join ';', @next_line_down;
-			$line[$i_plus] .= ';';
+
+		# shift the word off for now, as we might put it on the next line. we'll put it back if we've only got one line.
+		my @word = split /;/, $line[$max{line}];
+		my $word = shift @word;
+
+		$line[$max{line}] = join ';', @word;
+		$line[$max{line}] .= ';';
+
+		my $next_line_index = $max{line} + 1;
+		if (scalar(@line) > $next_line_index) { # if another line exists
+			my @next_line = split /;/, $line[$next_line_index];
+
+			push @next_line, $word; # then put the word on the next line
+
+			$line[$next_line_index] = join ';', @next_line;
+			$line[$next_line_index] .= ';';
 		}
-		else {
+		else { # otherwise put it back on the same line
 			$word .= ';';
 			push @line, $word;
 		}
 
-		$text = join "\n", @line;
-		return $text;
+		$_text = join "\n", @line;
+		return $_text;
 	};
-	while ($gd_text_width > $width) {
+
+	while ($text_width > $width) { # wrap the text
 		$text = $_wrap_text->($text);
 		$gd_text->set_text($text);
-		$gd_text_width = $gd_text->get('width');
+		$text_width = $gd_text->get('width');
 	}
+
 	my @line = split /\n/, $text;
 	my $lines = scalar @line;
 	my $height = $lines * $font_size + ($lines - 1) * $line_spacing;
 
+	my $width_hack = 3 * $width; # let's make it big
+	my $height_hack = 3 * $height;
 
-	my $width_hack = $width + $line_spacing;
-	my $height_hack = $height + 2 * $line_spacing;
+	my $gd_image_hack = GD::Image->new($width_hack, $height_hack);
+	my $gd_image_hack_white = $gd_image_hack->colorAllocate(255,255,255);
+	my $gd_image_hack_black = $gd_image_hack->colorAllocate(0,0,0);
 
-	my $gd = GD::Image->new($width_hack, $height_hack);
-	my $white = $gd->colorAllocate(255,255,255);
-	my $black = $gd->colorAllocate(0,0,0);
-	$gd->transparent($white);
-	$gd->interlaced('false'); # maybe set true for anti-aliasing--test it
+	$gd_image_hack->transparent($gd_image_hack_white);
+	$gd_image_hack->interlaced('false');
 
-	my $_draw_line = sub {
-		my ($i, $text) = @_;
-		my $align = GD::Text::Align->new($gd,
+	my $_draw_line = sub { # a sub-routine to draw lines
+		my ($i, $_text) = @_;
+		my $gd_text_align = GD::Text::Align->new($gd_image_hack,
 			valign => 'top',
 			halign => 'right',
-			color  => $black,
+			color  => $gd_image_hack_black,
 		);
-		$align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
-		$align->set_text($text);
-		#print "$font_size $line_spacing\n";
+
+		$gd_text_align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
+		$gd_text_align->set_text($_text);
+
 		my $coord_x = $width;
 		my $coord_y = $line_spacing + $i * ($font_size + $line_spacing);
-		my @box = $align->bounding_box($coord_x, $coord_y, 0);
-		$align->draw($coord_x, $coord_y, 0);
+		my @box = $gd_text_align->bounding_box($coord_x, $coord_y, 0);
+
+		$gd_text_align->draw($coord_x, $coord_y, 0);
 	};
 
 	for (my $i = 0; $i < @line; $i++) {
-		my $text = $line[$i];
-		$text =~ s/^(&#32;)+//;
-		$text =~ s/(&#32;)+$//;
-		$_draw_line->($i, $text);
+		my $_text = $line[$i];
+		$_text =~ s/^(&#32;)+//; # get rid of any spaces at the beginning and end of the line
+		$_text =~ s/(&#32;)+$//; # if these accidentally ended up there
+		$_draw_line->($i, $_text);
 	}
 
-	my $min_x = $width_hack;
-	my $min_y = $height_hack;
-	my $max_x = 0;
-	my $max_y = 0;
+	my ($min_x, $min_y, $max_x, $max_y) = ($width_hack, $height_hack, 0, 0);
 
 	for (my $x = 0; $x <= $width_hack; $x++) {
 		for (my $y = 0; $y <= $height_hack; $y++) {
-			if ($gd->getPixel($x, $y)) {
+			if ($gd_image_hack->getPixel($x, $y)) {
 				$min_x = $x if $x < $min_x;
 				$min_y = $y if $y < $min_y;
 				$max_x = $x if $x > $max_x;
@@ -219,19 +223,21 @@ sub generate_image {
 		}
 	}
 
-	my $gd_hack = GD::Image->new($width, $max_y - $min_y);
-	my $gd_hack_white = $gd_hack->colorAllocate(255,255,255);
-	$gd_hack->transparent($gd_hack_white);
-	$gd_hack->interlaced('false'); # maybe set true for anti-aliasing--test it
-	$gd_hack->copy($gd, $width - ($max_x - $min_x), 0, $min_x, $min_y, $max_x - $min_x, $max_y - $min_y);
-	#$gd_hack->copy($gd, 0, 0, 100, 100, 100, 100);
+	my $px_margin = 2;
+	my $gd_image = GD::Image->new($width, $max_y - $min_y + $px_margin);
+	my $gd_image_white = $gd_image->colorAllocate(255,255,255);
+
+	$gd_image->transparent($gd_image_white);
+	$gd_image->interlaced('false');
+	$gd_image->copy($gd_image_hack, $width - ($max_x - $min_x + $px_margin), 0, $min_x, $min_y, $max_x - $min_x + $px_margin, $max_y - $min_y + $px_margin);
 
 	my $path = './output/width_'. $width .'/em_'. $scale .'/';
 	my $file = $sura ."_". $ayah .".png";
+
 	eval { `mkdir -p $path` };
 	open OUTPUT, ">". $path . $file;
 	binmode OUTPUT;
-	print OUTPUT $gd_hack->png(9);
+	print OUTPUT $gd_image->png(9);
 }
 
 sub _reverse_text {
