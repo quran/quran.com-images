@@ -72,6 +72,8 @@ sub generate_batch {
 sub generate_image {
 	my ($self, $sura, $ayah) = @_;
 
+	print "Generating image for sura $sura, ayah $ayah...\n";
+
 	my ($page, $text) = $dbh->selectrow_array(
 		"select page, text from sura_ayah_page_text where sura = $sura and ayah = $ayah");
 
@@ -131,8 +133,6 @@ sub generate_image {
 			my $_text_width = $gd_text->get('width');
 			my $_text_height = $gd_text->get('height');
 
-			print "Debug: gd_text _text_width $_text_width\n";
-
 			if ($_text_width > $max{width}) {
 				$max{width} = $_text_width;
 				$max{line}  = $i;
@@ -180,13 +180,10 @@ sub generate_image {
 	}
 
 	if ($lines > 1) { # don't let ayah number sit on a line by itself
-		print "Debug: lines > 1 ($lines)\n";
 		my @last_line = split /;/, $line[$lines - 1];
 		my $words_on_last_line = scalar(@last_line);
 
-		print "Debug: words_on_last_line = $words_on_last_line\n";
 		if ($words_on_last_line == 1) {
-			print "Debug: words_on_last_line == 1\n";
 			my @line_before_last_line = split /;/, $line[$lines - 2];
 			my $word = shift @line_before_last_line;
 
@@ -203,20 +200,28 @@ sub generate_image {
 
 	my $height = $lines * $font_size + ($lines - 1) * $line_spacing;
 
-	my $width_hack = 3 * $width; # let's make it big
-	my $height_hack = 3 * $height;
+	my $hack_width = 3 * $width; # let's make it big
+	my $hack_height = 3 * $height;
+	my $hack_margin = 2;
 
-	my $gd_image_hack = GD::Image->new($width_hack, $height_hack);
-	my $gd_image_hack_white = $gd_image_hack->colorAllocate(255,255,255);
-	my $gd_image_hack_black = $gd_image_hack->colorAllocate(0,0,0);
+	my $gd_image = GD::Image->new($hack_width, $hack_height);
+	my $gd_image_white = $gd_image->colorAllocate(255,255,255);
 
-	$gd_image_hack->transparent($gd_image_hack_white);
-	$gd_image_hack->interlaced('false');
+	$gd_image->transparent($gd_image_white);
+	$gd_image->interlaced('false');
 
 	my $_draw_line = sub { # a sub-routine to draw lines
 		my ($i, $_text) = @_;
+
+		my $gd_image_hack = GD::Image->new($hack_width, $hack_height);
+		my $gd_image_hack_white = $gd_image_hack->colorAllocate(255,255,255);
+		my $gd_image_hack_black = $gd_image_hack->colorAllocate(0,0,0);
+
+		$gd_image_hack->transparent($gd_image_hack_white);
+		$gd_image_hack->interlaced('false');
+
 		my $gd_text_align = GD::Text::Align->new($gd_image_hack,
-			valign => 'top',
+			valign => 'center',
 			halign => 'right',
 			color  => $gd_image_hack_black,
 		);
@@ -224,11 +229,29 @@ sub generate_image {
 		$gd_text_align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
 		$gd_text_align->set_text($_text);
 
-		my $coord_x = $width;
+		my $coord_x = 2 * $width;
 		my $coord_y = $line_spacing + $i * ($font_size + $line_spacing);
-		my @box = $gd_text_align->bounding_box($coord_x, $coord_y, 0);
 
 		$gd_text_align->draw($coord_x, $coord_y, 0);
+
+		my ($min_x, $min_y, $max_x, $max_y) = ($hack_width, $hack_height, 0, 0);
+
+		for (my $x = 0; $x <= $hack_width; $x++) {
+			for (my $y = 0; $y <= $hack_height; $y++) {
+				if ($gd_image_hack->getPixel($x, $y)) {
+					$min_x = $x if $x < $min_x;
+					$min_y = $y if $y < $min_y;
+					$max_x = $x if $x > $max_x;
+					$max_y = $y if $y > $max_y;
+				}
+			}
+		}
+
+		$gd_image->copy($gd_image_hack,
+			$width - ($max_x - $min_x + $hack_margin), $coord_y, # destination x, y
+			$min_x, $min_y, # source x, y
+			$max_x - $min_x + $hack_margin, $max_y - $min_y + $hack_margin # source w, h
+		);
 	};
 
 	for (my $i = 0; $i < @line; $i++) {
@@ -236,11 +259,11 @@ sub generate_image {
 		$_draw_line->($i, $_text);
 	}
 
-	my ($min_x, $min_y, $max_x, $max_y) = ($width_hack, $height_hack, 0, 0);
+	my ($min_x, $min_y, $max_x, $max_y) = ($hack_width, $hack_height, 0, 0);
 
-	for (my $x = 0; $x <= $width_hack; $x++) {
-		for (my $y = 0; $y <= $height_hack; $y++) {
-			if ($gd_image_hack->getPixel($x, $y)) {
+	for (my $x = 0; $x <= $hack_width; $x++) {
+		for (my $y = 0; $y <= $hack_height; $y++) {
+			if ($gd_image->getPixel($x, $y)) {
 				$min_x = $x if $x < $min_x;
 				$min_y = $y if $y < $min_y;
 				$max_x = $x if $x > $max_x;
@@ -249,13 +272,17 @@ sub generate_image {
 		}
 	}
 
-	my $px_margin = 2;
-	my $gd_image = GD::Image->new($width, $max_y - $min_y + $px_margin);
-	my $gd_image_white = $gd_image->colorAllocate(255,255,255);
+	my $gd_image_final = GD::Image->new($width, $max_y - $min_y + $hack_margin);
+	my $gd_image_final_white = $gd_image_final->colorAllocate(255,255,255);
 
-	$gd_image->transparent($gd_image_white);
-	$gd_image->interlaced('false');
-	$gd_image->copy($gd_image_hack, $width - ($max_x - $min_x + $px_margin), 0, $min_x, $min_y, $max_x - $min_x + $px_margin, $max_y - $min_y + $px_margin);
+	$gd_image_final->transparent($gd_image_final_white);
+	$gd_image_final->interlaced('false');
+
+	$gd_image_final->copy($gd_image,
+		$width - ($max_x - $min_x + $hack_margin), 0, # destination x, y
+		$min_x, $min_y, # source x, y
+		$max_x - $min_x + $hack_margin, $max_y - $min_y + $hack_margin # source w, h
+	);
 
 	my $path = './output/width_'. $width .'/em_'. $scale .'/';
 	my $file = $sura ."_". $ayah .".png";
@@ -263,7 +290,7 @@ sub generate_image {
 	eval { `mkdir -p $path` };
 	open OUTPUT, ">". $path . $file;
 	binmode OUTPUT;
-	print OUTPUT $gd_image->png(9);
+	print OUTPUT $gd_image_final->png(9);
 }
 
 sub _reverse_text {
