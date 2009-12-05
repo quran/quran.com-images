@@ -15,7 +15,7 @@
 # Their URL: http://www.qurancomplex.com
 
 # TODO
-# fix weird indentation thing
+# fix varying vertical space between lines
 
 use strict;
 use warnings;
@@ -32,7 +32,7 @@ use List::Util qw/min max/;
 my $self = \&main;
 bless $self;
 
-my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/text.sqlite2.db","","",
+my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/text.copy.sqlite2.db","","",
 	{ RaiseError => 1, AutoCommit => 0 });
 
 my ($sura, $ayah, $batch, $width, $scale, $help) = (undef, undef, undef, 640, 1.0, 0);
@@ -202,7 +202,6 @@ sub generate_image {
 
 	my $hack_width = 3 * $width; # let's make it big
 	my $hack_height = 3 * $height;
-	my $hack_margin = 2;
 
 	my $gd_image = GD::Image->new($hack_width, $hack_height);
 	my $gd_image_white = $gd_image->colorAllocate(255,255,255);
@@ -210,8 +209,13 @@ sub generate_image {
 	$gd_image->transparent($gd_image_white);
 	$gd_image->interlaced('false');
 
+	my $cumulative_y = 0;
+	my $last_base_line = 0;
 	my $_draw_line = sub { # a sub-routine to draw lines
 		my ($i, $_text) = @_;
+
+		my $hack_width = 2 * $width;
+		my $hack_height = 3 * $line_spacing;
 
 		my $gd_image_hack = GD::Image->new($hack_width, $hack_height);
 		my $gd_image_hack_white = $gd_image_hack->colorAllocate(255,255,255);
@@ -221,7 +225,7 @@ sub generate_image {
 		$gd_image_hack->interlaced('false');
 
 		my $gd_text_align = GD::Text::Align->new($gd_image_hack,
-			valign => 'center',
+			valign => 'top',
 			halign => 'right',
 			color  => $gd_image_hack_black,
 		);
@@ -229,16 +233,20 @@ sub generate_image {
 		$gd_text_align->set_font("./data/fonts/QCF_P$page.TTF", $font_size);
 		$gd_text_align->set_text($_text);
 
-		my $coord_x = 2 * $width;
-		my $coord_y = $line_spacing + $i * ($font_size + $line_spacing);
+		my $coord_x = 1.5 * $width;
+		my $coord_y = $line_spacing;# + $cumulative_y;
 
 		$gd_text_align->draw($coord_x, $coord_y, 0);
 
 		my ($min_x, $min_y, $max_x, $max_y) = ($hack_width, $hack_height, 0, 0);
 
+		my @pixel_count;
+
 		for (my $x = 0; $x <= $hack_width; $x++) {
 			for (my $y = 0; $y <= $hack_height; $y++) {
+				$pixel_count[$y] = 0 if !$pixel_count[$y];
 				if ($gd_image_hack->getPixel($x, $y)) {
+					$pixel_count[$y]++;
 					$min_x = $x if $x < $min_x;
 					$min_y = $y if $y < $min_y;
 					$max_x = $x if $x > $max_x;
@@ -247,11 +255,32 @@ sub generate_image {
 			}
 		}
 
+		my $base_line = 0;
+		my $max_pixels = 0;
+
+		for (my $i = 0; $i < $min_y; $i++) {
+			shift @pixel_count;
+		}
+		for (my $i = $max_y + 1; $i <= $hack_height; $i++) {
+			pop @pixel_count;
+		}
+		for (my $y = 0; $y < @pixel_count; $y++) {
+			if ($pixel_count[$y] > $max_pixels) {
+				$max_pixels = $pixel_count[$y];
+				$base_line = $y;
+			}
+		}
+
 		$gd_image->copy($gd_image_hack,
-			$width - ($max_x - $min_x + $hack_margin), $coord_y, # destination x, y
+			$width - ($max_x - $min_x + 1), $cumulative_y, # destination x, y
 			$min_x, $min_y, # source x, y
-			$max_x - $min_x + $hack_margin, $max_y - $min_y + $hack_margin # source w, h
+			$max_x - $min_x + 1, $max_y - $min_y + 1 # source w, h
 		);
+
+		$cumulative_y += $line_spacing + $base_line;
+
+		undef $gd_image_hack;
+		undef $gd_text_align;
 	};
 
 	for (my $i = 0; $i < @line; $i++) {
@@ -272,16 +301,16 @@ sub generate_image {
 		}
 	}
 
-	my $gd_image_final = GD::Image->new($width, $max_y - $min_y + $hack_margin);
+	my $gd_image_final = GD::Image->new($width, $max_y - $min_y + 1);
 	my $gd_image_final_white = $gd_image_final->colorAllocate(255,255,255);
 
 	$gd_image_final->transparent($gd_image_final_white);
 	$gd_image_final->interlaced('false');
 
 	$gd_image_final->copy($gd_image,
-		$width - ($max_x - $min_x + $hack_margin), 0, # destination x, y
+		$width - ($max_x - $min_x + 1), 0, # destination x, y
 		$min_x, $min_y, # source x, y
-		$max_x - $min_x + $hack_margin, $max_y - $min_y + $hack_margin # source w, h
+		$max_x - $min_x + 1, $max_y - $min_y + 1 # source w, h
 	);
 
 	my $path = './output/width_'. $width .'/em_'. $scale .'/';
