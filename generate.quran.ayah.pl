@@ -32,7 +32,7 @@ use List::Util qw/min max/;
 my $self = \&main;
 bless $self;
 
-my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/text.sqlite2.db","","",
+my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/text.copy.copy.copy.sqlite2.db","","",
 	{ RaiseError => 1, AutoCommit => 0 });
 
 my ($sura, $ayah, $batch, $width, $scale, $help) = (undef, undef, undef, 640, 1.0, 0);
