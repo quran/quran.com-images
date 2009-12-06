@@ -200,8 +200,8 @@ sub generate_image {
 
 	for (my $i = 0; $i < $lines; $i++) {
 		my $_text = $line[$i];
-		#$_text =~ s/^(&#32;)+//; # get rid of any spaces at the beginning and end of the line
-		#$_text =~ s/(&#32;)+$//; # if these accidentally ended up there
+		$_text =~ s/^(&#32;)+//; # get rid of any spaces at the beginning and end of the line
+		$_text =~ s/(&#32;)+$//; # if these accidentally ended up there
 		$line[$i] = $_text;
 	}
 
