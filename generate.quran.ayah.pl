@@ -97,17 +97,43 @@ sub generate_image {
 	my $line_spacing = $font_size;
 
 	# we're going to adjust a problem with spacing between words where line breaks occur in a mushaff
-	my $max_line = $dbh->selectrow_array(
-		"select max(line) from madani_page_text where sura = $sura and ayah = $ayah");
+	my ($last_line, $line_count) = $dbh->selectrow_array(
+		"select max(line), count(*) from madani_page_text where sura = $sura and ayah = $ayah");
 	my $sth = $dbh->prepare(
 		"select line, text from madani_page_text where sura = $sura and ayah = $ayah order by line asc");
 	$sth->execute;
-	while (my ($line, $_text) = $sth->fetchrow_array) {
-		$_text = $self->_reverse_text($_text);
-		if ($line < $max_line) {
-			$text =~ s/$_text/&#32;&#32;$_text&#32;&#32;/g; # add spaces around that segment of text
+	while (my ($line_number, $line_text) = $sth->fetchrow_array) {
+		$line_text = $self->_reverse_text($line_text);
+		if ($line_number < $last_line) {
+			$text =~ s/$line_text/&#32;&#32;$line_text&#32;&#32;/g; # add spaces around that segment of text
+		}
+		# else, if the ayah is supposedly on a single line but the
+		# line's text doesn't contain all of that ayah's text
+		# then we know it actually spans two lines and also needs some
+		# spacing added around segments
+		elsif ($line_count == 1 and $line_text !~ $text) {
+			# we're going to remove word's if the ayah's text doesn't have it
+			my @line_text = split /;/, $line_text;
+			my $shift_count = 0;
+			for (my $i = 0; $i < @line_text; $i++) {
+				if ($text !~ $line_text[$i]) {
+					$shift_count++;
+				}
+				else {
+					last;
+				}
+			}
+			for (my $i = 0; $i < $shift_count; $i++) {
+				shift @line_text;
+			}
+			$line_text = join ';', @line_text;
+			$line_text .= ';';
+			$text =~ s/$line_text/$line_text&#32;&#32;/g; # add spaces around that segment of text
 		}
 	}
+	$text =~ s/^(&#32;)+//;
+	$text =~ s/(&#32;)+$//;
+	$text =~ s/(&#32;)+/&#32;&#32;/g;
 	$sth->finish;
 
   my $gd_text = GD::Text->new() or die GD::Text::error();
@@ -174,8 +200,8 @@ sub generate_image {
 
 	for (my $i = 0; $i < $lines; $i++) {
 		my $_text = $line[$i];
-		$_text =~ s/^(&#32;)+//; # get rid of any spaces at the beginning and end of the line
-		$_text =~ s/(&#32;)+$//; # if these accidentally ended up there
+		#$_text =~ s/^(&#32;)+//; # get rid of any spaces at the beginning and end of the line
+		#$_text =~ s/(&#32;)+$//; # if these accidentally ended up there
 		$line[$i] = $_text;
 	}
 
