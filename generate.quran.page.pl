@@ -36,6 +36,11 @@ bless $self;
 my $dbh = DBI->connect("dbi:SQLite2:dbname=./data/text.sqlite2.db","","",
 	{ RaiseError => 1, AutoCommit => 0 });
 
+# for now, but we can move it to the same database...
+my $corpus_dbh = DBI->connect(
+	"dbi:SQLite2:dbname=./data/corpus/corpus.sqlite2.db","","",
+	{ RaiseError => 1, AutoCommit => 0 });
+
 my ($page, $batch, $width, $scale, $help) = (undef, undef, undef, 1.0, 0);
 
 GetOptions(
@@ -64,7 +69,7 @@ else {
 
 sub generate_batch {
 	for (my $page = 1; $page <= 604; $page++) {
-		print "Generating page $page for width $width...\n";
+		print "-- Generating page $page for width $width...\n";
 		$self->generate_page($page);
 	}
 }
@@ -100,14 +105,19 @@ sub generate_page {
 	my $gd = GD::Image->new($width, $height + $line_spacing / 2);
 	my $white = $gd->colorAllocateAlpha(255, 255, 255, 127);
 	my $black = $gd->colorAllocate(0, 0, 0);
+	my $red = $gd->colorAllocate(255, 0, 0);
 
 	$gd->transparent($white);
 	$gd->interlaced('false'); # save some kB
 
 	my $_draw_line = sub {
 		my ($i, $ayah, $text) = @_;
+		my @words = split(/;/, $text);
+
+		if ((!$ayah) || ($ayah == 0)){ @words = ($text); }
+
 		my $align = GD::Text::Align->new(
-			$gd, valign => 'center', halign => 'center', color => $black);
+			  $gd, valign => 'center', halign => 'center', color => $black);
 		if ((!$ayah) || ($ayah == 0)){
 			$align->set_font("./data/fonts/QCF_BSML.TTF", $font_size - 1);
 		}
@@ -115,10 +125,86 @@ sub generate_page {
 			$align->set_font("./data/fonts/QCF_P$page_str.TTF", $font_size - 1);
 		}
 		$align->set_text($text);
+
+		my $render_x = -1;
+		my $previous_w = -1;
 		my $coord_x = $width / 2;
-		my $coord_y = $i * ($font_size + $line_spacing) + $line_spacing;
-		my @box = $align->bounding_box($coord_x, $coord_y, 0);
-		$align->draw($coord_x, $coord_y, 0);
+		my $tcoord_y = $i * ($font_size + $line_spacing) + $line_spacing;
+		my $line_width = $self->_get_line_width($text, $page_str, $font_size-1);
+
+		my @vals = ();
+		my @wstore = ();
+
+		my $max_y = -1;
+		my $min_y = -1;
+		foreach my $word (@words){
+			my $color = $black;
+			if (($ayah) && ($ayah > 0)){
+				$word = $word . ';';
+				if ($self->_is_mention_of_Allah($page, $word)){
+					$color = $red;
+				}
+			}
+			$align = GD::Text::Align->new(
+				$gd, valign => 'center', halign => 'center', color => $color);
+			if ((!$ayah) || ($ayah == 0)){
+				$align->set_font("./data/fonts/QCF_BSML.TTF", $font_size - 1);
+			}
+			else {
+				$align->set_font("./data/fonts/QCF_P$page_str.TTF", $font_size - 1);
+			}
+			$align->set_text($word);
+
+			my @word_box = $align->bounding_box(0, $tcoord_y, 0);
+			my $word_width = $word_box[4] - $word_box[0];
+			if ($min_y == -1){
+				$min_y = $word_box[5];
+				$max_y = $word_box[1];
+			}
+			if ($min_y > $word_box[5]){ $min_y = $word_box[5]; }
+			if ($max_y < $word_box[1]){ $max_y = $word_box[1]; }
+
+			if ($render_x == -1){
+				$coord_x = (($width - $line_width) / 2) + ($word_width/2);
+				$render_x = $coord_x;
+				$previous_w = $word_box[4];
+			}
+			else {
+				$render_x = $render_x + ($previous_w) + ($word_width/2);
+				$previous_w = $word_box[4];
+			}
+
+			if ((!$ayah) || ($ayah == 0)){ $render_x = $width / 2; }
+			else {
+				my $v = ($render_x + $word_box[0]);
+				push(@vals, $v);
+				push(@wstore, $word);
+			}
+			$align->draw($render_x, $tcoord_y, 0);
+	}
+
+	# this code prints out the sql necessary to have bounding boxes for
+	# each word.  probably should move this into its own sqlite table or
+	# something and then if someone wants it elsewhere, they can convert
+	# sqlite to mysql or what not.
+	#
+	# y goes between min_y and max_y.
+	# x goes between the last value and the current.
+	#
+	my $last_val = $render_x + $previous_w;
+	my $elem = pop(@vals);
+	while ($elem){
+		my $w = pop(@wstore);
+		$w =~ s/&#//g;
+		$w =~ s/;//g;
+		my $q = "insert into bounds(page, word, minx, maxx, miny, maxy) values(" .
+			"$page, $w, $elem, $last_val, $min_y, $max_y);";
+		print $q . "\n";
+
+		$last_val = $elem;
+		$elem = pop(@vals);
+	}
+
 	};
 
 	for my $line (sort { $a <=> $b } keys %{ $hash }) {
@@ -171,6 +257,27 @@ sub _reverse_text {
 	$text .= ';';
 	return $text;
 } # sub _reverse_text
+
+sub _is_mention_of_Allah {
+	my ($self, $page, $word) = @_;
+
+	$word =~ s/&#//g;
+	$word =~ s/;//g;
+	# is there a 'like' syntax in sqlite2?
+	my $sth = $corpus_dbh->prepare("select qc_code, lemmas from " .
+		"corpus_mappings where page = $page");
+  $sth->execute;
+	while (my ($qc_code, $lemmas) = $sth->fetchrow_array) {
+		if (($qc_code eq $word) || ($qc_code =~ /$word\+.*/)){
+			if (($lemmas =~ /{ll~ah/) || ($lemmas =~ /rab~/)){
+				$sth->finish;
+				return 1;
+			}
+		}
+	}
+	$sth->finish;
+	return 0;
+}
 
 
 __END__
