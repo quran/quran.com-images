@@ -1,0 +1,8 @@
+- requires images/ directory containing images
+- requires corresponding tables in database
+- requires credentials.inc that looks like:
+  <?php
+  $db_host = 'localhost';
+  $db_username = 'username';
+  $db_password = 'password';
+  $db_dbname = 'database';
