@@ -15,6 +15,7 @@ if ((!is_numeric($page)) || ($page < 1) || ($page > 604)) $page = '';
 if (empty($page)) $page = 1;
 $fn = sprintf('%03d', $page);
 $next = ($page == 604)? 1 : ($page + 1);
+$prev = ($page == 1)? 604 : ($page - 1);
 
 $lookup = array();
 $q = "select word, minx, maxx, miny, maxy from bounds where page=$page";
