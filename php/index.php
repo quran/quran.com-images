@@ -1,16 +1,20 @@
 <?php
 require 'credentials.inc';
 mysql_pconnect($db_host, $db_username, $db_password) or
-   die('could not connect: ' . mysql_error());
+      die('could not connect: ' . mysql_error());
 mysql_select_db($db_dbname) or
-   die('could not select database: ' . mysql_error());
+      die('could not select database: ' . mysql_error());
 mysql_query("set names 'utf8'") or
    die('could not query: ' . mysql_error());
+
+$autoplay = false;
+if (isset($_GET['autoplay']) && ($_GET['autoplay'] == 1)) $autoplay = true;
 
 $page = isset($_GET['page'])? $_GET['page'] : '';
 if ((!is_numeric($page)) || ($page < 1) || ($page > 604)) $page = '';
 if (empty($page)) $page = 1;
-$fn = ($page < 100)? (($page < 10)? "00$page" : "0$page") : $page;
+$fn = sprintf('%03d', $page);
+$next = ($page == 604)? 1 : ($page + 1);
 
 $lookup = array();
 $q = "select word, minx, maxx, miny, maxy from bounds where page=$page";
@@ -34,11 +38,25 @@ while ($row = mysql_fetch_assoc($res)){
       $row['sura'] . ':' . $row['ayah'] . ':' . $row['word'] . ')">' . "\n";
 }
 print "<title>quran - $fn</title>";
+print '<link rel="stylesheet" type="text/css" href="css/styles.css" />';
 print '<map name="mushaf_page">';
 print $map_elems;
 print '</map>';
 
+$mp3 = "http://everyayah.com/data/Husary_128kbps/PageMp3s/Page$fn.mp3";
 $fn = "images/$fn.png";
+
+$cmd = ($autoplay? 'stop' : 'play');
+print <<<CONTROLS
+   <div class="playdiv">
+     <a href="index.php?page=$prev">prev</a> |
+     <a href="index.php?page=$next">next</a>
+     <div class="play_control">
+        <a id="control" href="javascript:$cmd();">$cmd</a>
+     </div>
+   </div>
+CONTROLS;
+
 print '<img id="map" src="' . $fn . '" border="0" usemap="#mushaf_page">';
 ?>
 
@@ -46,8 +64,44 @@ print '<img id="map" src="' . $fn . '" border="0" usemap="#mushaf_page">';
         src="jquery-qtip/jquery-1.3.2.min.js"></script>
 <script type="text/javascript" 
         src="jquery-qtip/jquery.qtip-1.0.0-rc3.min.js"></script>
+<script type="text/javascript"
+        src="soundmanager2/script/soundmanager2-nodebug-jsmin.js"></script>
 
 <script type="text/javascript">
+var current_mp3;
+soundManager.url = 'soundmanager2/swf/';
+soundManager.onload = function(){
+   current_mp3 = soundManager.createSound({
+      id: 'page_mp3',
+      url: '<?php echo $mp3; ?>',
+      onfinish: function(){ 
+         location.href = 'index.php?page=<?php echo $next; ?>&autoplay=1';
+      }
+   });
+<?php if ($autoplay){ echo "play();"; } ?>
+}
+
+function update_elem(cmd, text){
+   elem = $("#control")[0];
+   elem.href = 'javascript:' + text + '();';
+   elem.innerHTML = text;
+}
+
+function play(){
+   current_mp3.play();
+   update_elem('stop', 'stop');
+}
+
+function stop(){
+   current_mp3.pause();
+   update_elem('resume', 'play');
+}
+
+function resume(){
+   current_mp3.resume();
+   update_elem('stop', 'stop');
+}
+
 // Create the tooltips only when document ready
 $(document).ready(function(){
    // Use the each() method to gain access to each elements attributes
