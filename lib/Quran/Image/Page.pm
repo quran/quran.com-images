@@ -3,8 +3,6 @@ package Quran::Image::Page;
 use strict;
 use warnings;
 
-use List::Util qw/min max/;
-
 use base qw/Quran Quran::Image/;
 
 sub generate {
@@ -65,14 +63,15 @@ sub _create_image {
 
 		print "lw = $lw, lh = $lh, ls = $ls, lu = $lu, ld = $ld\n";
 
-		my $line_coord_x = ($self->{_width} - $lw) / 2;
+		my $line_coord_x = ($self->{_width} - $lw - $ls) / 2;
 
+		# declare bounding box variable and grab bounding box for the line text
 		my @bb = GD::Image->stringFT($self->{_color}->{black},
 			$font_file, $self->{_font_size}, 0, $line_coord_x,
 			$line_coord_y, $page_line->{line_text});
 
 		if ($bb[7] < 0 || $bb[5] < 0) {
-			$line_coord_y += -1 * min($bb[7], $bb[5]);
+			$line_coord_y += -1 * List::Util::min($bb[7], $bb[5]);
 		}
 
 		my @words = split /;/, $page_line->{line_text};
@@ -87,10 +86,6 @@ sub _create_image {
 			my ($ww, $wh, $ws, $wu, $wd) = $gd_text->get('width', 'height',
 				'space', 'char_up', 'char_down');
 
-			@bb = GD::Image->stringFT($self->{_color}->{black},
-				$font_file, $self->{_font_size}, 0, $line_coord_x,
-				$line_coord_y, $word, { charmap => 'Unicode' });
-
 			print "ww = $ww, wh = $wh, ws = $ws, wu = $wu, wd = $wd\n";
 
 			if (!defined $word_coord_x) {
@@ -99,8 +94,19 @@ sub _create_image {
 			else {
 				$word_coord_x += $previous_w;
 			}
-			$previous_w = $ww + $ws;
 
+			# here we use GD::Text::Align to get the bounding box of the word
+			my $align = GD::Text::Align->new($self->{_image});
+			$align->set_font($font_file, $self->{_font_size});
+			$align->set_text($word);
+
+			# here we grab the bounding box for the word
+			@bb = $align->bounding_box(0, $line_coord_y, 0);
+
+			# here we make use of the word's bounding box
+			$previous_w = $bb[4] - ($ws / 2);
+
+			# this line actually draws the word unto the image
 			@bb = $self->{_image}->stringFT($self->{_color}->{black},
 				$font_file, $self->{_font_size}, 0, $word_coord_x,
 				$line_coord_y, $word);
@@ -111,59 +117,6 @@ sub _create_image {
 		}
 		else {
 			$line_coord_y += 2 * $lu;
-		}
-	}
-
-	return $image;
-}
-
-
-sub _create_image_old {
-	my ($self, $page_number) = @_;
-
-	my $page_lines = $self->db->_get_page_lines($page_number);
-
-	my $image = ($self->{_image} = GD::Image->new($self->{_width},
-		$self->{_height}));
-	my $color = ($self->{_color} = {
-		white => $image->colorAllocateAlpha(255,255,255,127),
-		black => $image->colorAllocate(0,0,0),
-		red   => $image->colorAllocate(255,0,0)
-	});
-	$image->transparent( $color->{white} );
-	$image->interlaced('false');
-
-	my $coord_y = 0;
-
-	while (my $page_line = shift @{ $page_lines }) {
-		my $font_file = Quran::Image::FONTS_DIR .'/'.
-			$page_line->{font_file};
-		my $gd_text = GD::Text->new(
-			font => $font_file,
-			ptsize => $self->{_font_size}
-		) or die GD::Text::error();
-	
-		$gd_text->set_text($page_line->{line_text});
-		my ($w, $h, $s, $u, $d) = $gd_text->get('width', 'height', 'space',
-			'char_up', 'char_down');
-
-		my @bb = GD::Image->stringFT($self->{_color}->{black},
-			$font_file, $self->{_font_size}, 0, ($self->{_width} - $w)/2,
-			$coord_y, $page_line->{line_text});
-
-		if ($bb[7] < 0 || $bb[5] < 0) {
-			$coord_y += -1 * min($bb[7], $bb[5]);
-		}
-
-		@bb = $self->{_image}->stringFT($self->{_color}->{black},
-			$font_file, $self->{_font_size}, 0, ($self->{_width} - $w)/2,
-			$coord_y, $page_line->{line_text});
-
-		if ($page_number == 1 || $page_number == 2) {
-			$coord_y += Quran::Image::PHI * $u;
-		}
-		else {
-			$coord_y += 2 * $u;
 		}
 	}
 

@@ -7,6 +7,7 @@ use base qw/Quran/;
 
 use GD;
 use GD::Text;
+use GD::Text::Align;
 use List::Util qw/min max/;
 use File::Path qw/make_path/;
 
@@ -47,6 +48,13 @@ sub _write_image {
 	print PNG $image->png(9);
 
 	return;
+}
+
+sub _is_mention_of_Allah {
+	my $self = shift;
+	my @args = @_;
+
+	return $self->db->is_mention_of_Allah(@args);
 }
 
 1;

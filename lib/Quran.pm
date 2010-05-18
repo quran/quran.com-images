@@ -1,3 +1,5 @@
+# بسم الله الرحمن الرحيم
+
 package Quran;
 
 use strict;

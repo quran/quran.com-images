@@ -68,6 +68,12 @@ sub _get_page_lines {
 
 sub _get_char_type {
 	my $self = shift;
+	return;
+}
+
+sub _is_mention_of_Allah {
+	my $self = shift;
+	return;
 }
 
 1;
