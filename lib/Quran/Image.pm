@@ -51,10 +51,11 @@ sub _write_image {
 }
 
 sub _is_mention_of_Allah {
-	my $self = shift;
-	my @args = @_;
+	my ($self, $char_code, $page_number) = @_;
 
-	return $self->db->is_mention_of_Allah(@args);
+	my $lemma = $self->db->_get_word_lemma($char_code, $page_number);
+
+	return ($lemma eq '{ll~ah' or $lemma eq 'rab~')? 1 : 0;
 }
 
 1;

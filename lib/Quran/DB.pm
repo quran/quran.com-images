@@ -71,9 +71,20 @@ sub _get_char_type {
 	return;
 }
 
-sub _is_mention_of_Allah {
-	my $self = shift;
-	return;
+sub _get_word_lemma {
+	my ($self, $char_code, $page_number) = @_;
+	$char_code =~ s/[^\d]//g;
+
+	my $sth = $self->{_dbh}->prepare(
+		"SELECT wl.value FROM word_lemma wl, word w, `char` c WHERE ".
+		"w.word_lemma_id = wl.word_lemma_id AND w.char_id = c.char_id AND ".
+		"c.char_code = ? AND w.page_number = ?");
+
+	$sth->execute($char_code, $page_number);
+	my ($word_lemma) = $sth->fetchrow_array;
+	$sth->finish;
+
+	return $word_lemma? $word_lemma : '';
 }
 
 1;

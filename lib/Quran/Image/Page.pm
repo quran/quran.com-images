@@ -29,28 +29,23 @@ sub generate {
 }
 sub _create_image {
 	my ($self, $page_number) = @_;
-
 	my $page_lines = $self->db->_get_page_lines($page_number);
-
 	my $image = ($self->{_image} = GD::Image->new($self->{_width},
 		$self->{_height}));
-
-	my $color = ($self->{_color} = {
+	my $colors = ($self->{_color} = {
 		white => $image->colorAllocateAlpha(255,255,255,127),
 		black => $image->colorAllocate(0,0,0),
 		red   => $image->colorAllocate(255,0,0)
 	});
-
-	$image->transparent( $color->{white} );
-	$image->interlaced('false');
-
 	my $line_coord_y = 0;
 
+	print "Generating page $page_number...\n";
+
+	$image->transparent( $colors->{white} );
+	$image->interlaced('false');
+
 	while (my $page_line = shift @{ $page_lines }) {
-
-		my $font_file = Quran::Image::FONTS_DIR .'/'.
-			$page_line->{font_file};
-
+		my $font_file = Quran::Image::FONTS_DIR .'/'. $page_line->{font_file};
 		my $gd_text = GD::Text->new(
 			font => $font_file,
 			ptsize => $self->{_font_size}
@@ -61,12 +56,12 @@ sub _create_image {
 		my ($lw, $lh, $ls, $lu, $ld) = $gd_text->get('width', 'height',
 			'space', 'char_up', 'char_down');
 
-		print "lw = $lw, lh = $lh, ls = $ls, lu = $lu, ld = $ld\n";
+		#print "lw = $lw, lh = $lh, ls = $ls, lu = $lu, ld = $ld\n";
 
 		my $line_coord_x = ($self->{_width} - $lw - $ls) / 2;
 
 		# declare bounding box variable and grab bounding box for the line text
-		my @bb = GD::Image->stringFT($self->{_color}->{black},
+		my @bb = GD::Image->stringFT($colors->{black},
 			$font_file, $self->{_font_size}, 0, $line_coord_x,
 			$line_coord_y, $page_line->{line_text});
 
@@ -74,19 +69,18 @@ sub _create_image {
 			$line_coord_y += -1 * List::Util::min($bb[7], $bb[5]);
 		}
 
-		my @words = split /;/, $page_line->{line_text};
-		$_ .= ';' for @words;
+		my @char_codes = split /;/, $page_line->{line_text};
+		$_ .= ';' for @char_codes;
 
 		my ($word_coord_x, $previous_w);
 
-		for my $word (@words) {
-
-			$gd_text->set_text($word);
+		for my $char_code (@char_codes) {
+			$gd_text->set_text($char_code);
 
 			my ($ww, $wh, $ws, $wu, $wd) = $gd_text->get('width', 'height',
 				'space', 'char_up', 'char_down');
 
-			print "ww = $ww, wh = $wh, ws = $ws, wu = $wu, wd = $wd\n";
+			#print "ww = $ww, wh = $wh, ws = $ws, wu = $wu, wd = $wd\n";
 
 			if (!defined $word_coord_x) {
 				$word_coord_x = $line_coord_x;
@@ -98,7 +92,7 @@ sub _create_image {
 			# here we use GD::Text::Align to get the bounding box of the word
 			my $align = GD::Text::Align->new($self->{_image});
 			$align->set_font($font_file, $self->{_font_size});
-			$align->set_text($word);
+			$align->set_text($char_code);
 
 			# here we grab the bounding box for the word
 			@bb = $align->bounding_box(0, $line_coord_y, 0);
@@ -106,10 +100,12 @@ sub _create_image {
 			# here we make use of the word's bounding box
 			$previous_w = $bb[4] - ($ws / 2);
 
+			# assign color to the word
+			my $color = $self->_is_mention_of_Allah($char_code, $page_number)? $colors->{red} : $colors->{black};
+
 			# this line actually draws the word unto the image
-			@bb = $self->{_image}->stringFT($self->{_color}->{black},
-				$font_file, $self->{_font_size}, 0, $word_coord_x,
-				$line_coord_y, $word);
+			@bb = $self->{_image}->stringFT($color, $font_file, $self->{_font_size},
+				0, $word_coord_x, $line_coord_y, $char_code);
 		}
 
 		if ($page_number == 1 || $page_number == 2) {
