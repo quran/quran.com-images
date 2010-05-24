@@ -46,7 +46,7 @@ sub _get_page_lines {
 				page_number => $page_number,
 				line_number => $line_number,
 				line_type   => $line_type,
-				font_file   => $font_file,
+				font_file   => Quran::FONTS_DIR .'/'. $font_file,
 				char_codes  => [$char_code]
 			};
 		}
@@ -66,22 +66,77 @@ sub _get_page_lines {
 	return $page_lines;
 }
 
+sub _get_ornament {
+	my ($self, $name) = @_;
+
+	my $sth;
+	if (!defined $self->{_sth_ornament}) {
+		$sth = ($self->{_sth_ornament} = $self->{_dbh}->prepare_cached(
+		"SELECT c.font_file, c.char_code FROM `char` c, char_type ct, ".
+		"char_type ctp WHERE c.char_type_id = ct.char_type_id AND ".
+		"ct.parent_id = ctp.char_type_id AND ctp.name = 'ornament' AND ".
+		"ct.name = ?"));
+	}
+	else {
+		$sth = $self->{_sth_ornament};
+	}
+
+	$sth->execute($name);
+
+	my ($font_file, $char_code) = $sth->fetchrow_array;
+
+	$char_code = '&#'. $char_code .';';
+	$font_file = Quran::FONTS_DIR .'/'. $font_file;
+
+	$sth->finish;
+
+	return ($font_file, $char_code);
+}
+
 sub _get_char_type {
-	my $self = shift;
-	return;
+	my ($self, $char_code, $page_number) = @_;
+
+	$char_code =~ s/[^\d]*//g;
+
+	my $sth;
+	if (!defined $self->{_sth_char_type}) {
+		$sth = ($self->{_sth_char_type} = $self->{_dbh}->prepare_cached(
+		"SELECT ct.name FROM char_type ct, `char` c WHERE c.char_type_id = ".
+		"ct.char_type_id AND c.char_code = ? AND c.page_number = ?"));
+	}
+	else {
+		$sth = $self->{_sth_char_type};
+	}
+
+	$sth->execute($char_code, $page_number);
+
+	my ($char_type) = $sth->fetchrow_array;
+
+	$sth->finish;
+
+	return $char_type;
 }
 
 sub _get_word_lemma {
 	my ($self, $char_code, $page_number) = @_;
 	$char_code =~ s/[^\d]//g;
 
-	my $sth = $self->{_dbh}->prepare(
+	my $sth;
+
+	if (!defined $self->{_sth_word_lemma}) {
+		$sth = ($self->{_sth_word_lemma} = $self->{_dbh}->prepare_cached(
 		"SELECT wl.value FROM word_lemma wl, word w, `char` c WHERE ".
 		"w.word_lemma_id = wl.word_lemma_id AND w.char_id = c.char_id AND ".
-		"c.char_code = ? AND w.page_number = ?");
+		"c.char_code = ? AND w.page_number = ?"));
+	}
+	else {
+		$sth = $self->{_sth_word_lemma};
+	}
 
 	$sth->execute($char_code, $page_number);
+
 	my ($word_lemma) = $sth->fetchrow_array;
+
 	$sth->finish;
 
 	return $word_lemma? $word_lemma : '';

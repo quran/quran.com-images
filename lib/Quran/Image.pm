@@ -13,8 +13,9 @@ use File::Path qw/make_path/;
 
 use constant PHI => ((sqrt 5) + 1) / 2;
 use constant phi => (((sqrt 5) + 1) / 2) - 1;
-
-use constant FONTS_DIR => Quran::ROOT_DIR .'/res/fonts';
+use constant pHi => phi * phi + 1;
+use constant phI => phi * phi * phi + 1;
+use constant PHi => PHI + phi * phi * phi;
 
 sub ayah {
 	my $self = shift;
@@ -45,7 +46,7 @@ sub _write_image {
 	open PNG, ">$path/$page.png";
 	binmode PNG;
 
-	print PNG $image->png(9);
+	print PNG $image->png(0);
 
 	return;
 }

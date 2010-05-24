@@ -12,6 +12,7 @@ use Carp;
 our $VERSION = '0.01';
 
 use constant ROOT_DIR => "$FindBin::Bin/..";
+use constant FONTS_DIR => Quran::ROOT_DIR .'/res/fonts';
 
 sub new;
 sub super;

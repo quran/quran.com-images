@@ -11,7 +11,7 @@ images_old/*
 blib/*
 blib/
 *.swo
-*.png
+images/*.png
 output/*
 test_output
 *.db-journal
