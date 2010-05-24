@@ -51,7 +51,10 @@ sub _write_image {
 }
 
 sub _is_mention_of_Allah {
-	my ($self, $char_code, $page_number) = @_;
+	my ($self, $char_code, $page_number, $line_type) = @_;
+
+	# don't highlight Allah in bismillah (for now)
+	return 0 if defined $line_type and $line_type eq 'bismillah';
 
 	my $lemma = $self->db->_get_word_lemma($char_code, $page_number);
 
