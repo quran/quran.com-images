@@ -14,7 +14,7 @@ my $image = new Quran::Image;
 print $image->page->generate(
 	page  => 'all',
 	path  => "$FindBin::Bin/../images",
-	width => 800
+	width => 1280
 );
 
 1;

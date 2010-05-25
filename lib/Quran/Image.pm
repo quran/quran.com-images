@@ -11,11 +11,23 @@ use GD::Text::Align;
 use List::Util qw/min max/;
 use File::Path qw/make_path/;
 
+=cut
+use constant phi =>
+use constant Phi =>
+use constant pHi =>
+use constant phI =>
+use constant PHi =>
+use constant pHI =>
+use constant PhI =>
+=cut
 use constant PHI => ((sqrt 5) + 1) / 2;
 use constant phi => (((sqrt 5) + 1) / 2) - 1;
-use constant pHi => phi * phi + 1;
-use constant phI => phi * phi * phi + 1;
-use constant PHi => PHI + phi * phi * phi;
+use constant Phi => phi ** 2 + 1;
+use constant pHi => phi ** 3 + 1;
+use constant pHI => pHi ** 4 + 1;
+use constant phI => phi ** 5 + 1;
+use constant PHi => phi ** 3 + PHI;
+use constant PhI => PHI ** 2;
 
 sub ayah {
 	my $self = shift;

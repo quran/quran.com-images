@@ -114,7 +114,7 @@ sub _get_char_type {
 
 	$sth->finish;
 
-	return $char_type;
+	return $char_type? $char_type : '';
 }
 
 sub _get_word_lemma {
