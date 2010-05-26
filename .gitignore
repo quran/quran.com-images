@@ -12,6 +12,7 @@ blib/*
 blib/
 *.swo
 images/*.png
+*.bak
 output/*
 test_output
 *.db-journal
