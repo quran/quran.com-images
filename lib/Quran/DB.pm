@@ -26,56 +26,55 @@ sub new {
 sub _get_page_lines {
 	my ($self, $page_number) = @_;
 
-	if (!defined $self->{_select_page_chars}) {
-		$self->{_select_page_chars} = $self->{_dbh}->prepare_cached(
-			"SELECT cp.line_number, cp.line_type, ".
-			"cp.char_position, c.font_file, c.char_code FROM char_page cp, ".
-			"`char` c WHERE c.char_id = cp.char_id AND cp.page_number = ? ".
-			"ORDER BY cp.page_number ASC, cp.line_number ASC, ".
-			"cp.char_position ASC");
+	if (!defined $self->{_select_page_glyphs}) {
+		$self->{_select_page_glyphs} = $self->{_dbh}->prepare_cached(
+			"SELECT gpl.line_number, gpl.line_type, ".
+			"gpl.position, g.font_file, g.glyph_code FROM glyph_page_line gpl, ".
+			"glyph g WHERE g.glyph_id = gpl.glyph_id AND gpl.page_number = ? ".
+			"ORDER BY gpl.page_number ASC, gpl.line_number ASC, ".
+			"gpl.position ASC");
 	}
 
-	$self->{_select_page_chars}->execute($page_number);
+	$self->{_select_page_glyphs}->execute($page_number);
 
 	my $page_lines = [];
 
-	while (my ($line_number, $line_type, $char_position, $font_file,
-		$char_code) = $self->{_select_page_chars}->fetchrow_array) {
+	while (my ($line_number, $line_type, $glyph_position, $font_file,
+		$glyph_code) = $self->{_select_page_glyphs}->fetchrow_array) {
 		if (!defined $page_lines->[$line_number - 1]) {
 			$page_lines->[$line_number - 1] = {
-				page_number => $page_number,
-				line_number => $line_number,
-				line_type   => $line_type,
-				font_file   => Quran::FONTS_DIR .'/'. $font_file,
-				char_codes  => [$char_code]
+				page_number  => $page_number,
+				line_number  => $line_number,
+				line_type    => $line_type,
+				font_file    => Quran::FONTS_DIR .'/'. $font_file,
+				glyph_codes  => [$glyph_code]
 			};
 		}
 		else {
-			push @{ $page_lines->[$line_number - 1]->{char_codes} }, 
-				$char_code;
+			push @{ $page_lines->[$line_number - 1]->{glyph_codes} }, $glyph_code;
 		}
 	}
 
 	for my $page_line (@{ $page_lines }) {
 		$page_line->{line_text} = '&#'. 
-			join(';&#', reverse sort @{ $page_line->{char_codes} }) .';';
+			join(';&#', reverse sort @{ $page_line->{glyph_codes} }) .';';
 	}
 
-	$self->{_select_page_chars}->finish;
+	$self->{_select_page_glyphs}->finish;
 
 	return $page_lines;
 }
 
-sub _get_ornament {
+sub _get_ornament_glyph {
 	my ($self, $name) = @_;
 
 	my $sth;
 	if (!defined $self->{_sth_ornament}) {
 		$sth = ($self->{_sth_ornament} = $self->{_dbh}->prepare_cached(
-		"SELECT c.font_file, c.char_code FROM `char` c, char_type ct, ".
-		"char_type ctp WHERE c.char_type_id = ct.char_type_id AND ".
-		"ct.parent_id = ctp.char_type_id AND ctp.name = 'ornament' AND ".
-		"ct.name = ?"));
+		"SELECT g.font_file, g.glyph_code FROM glyph g, glyph_type gt, ".
+		"glyph_type gtp WHERE g.glyph_type_id = gt.glyph_type_id AND ".
+		"gt.parent_id = gtp.glyph_type_id AND gtp.name = 'ornament' AND ".
+		"gt.name = ?"));
 	}
 	else {
 		$sth = $self->{_sth_ornament};
@@ -83,57 +82,57 @@ sub _get_ornament {
 
 	$sth->execute($name);
 
-	my ($font_file, $char_code) = $sth->fetchrow_array;
+	my ($font_file, $glyph_code) = $sth->fetchrow_array;
 
-	$char_code = '&#'. $char_code .';';
+	$glyph_code = '&#'. $glyph_code .';';
 	$font_file = Quran::FONTS_DIR .'/'. $font_file;
 
 	$sth->finish;
 
-	return ($font_file, $char_code);
+	return ($font_file, $glyph_code);
 }
 
-sub _get_char_type {
-	my ($self, $char_code, $page_number) = @_;
+sub _get_glyph_type {
+	my ($self, $glyph_code, $page_number) = @_;
 
-	$char_code =~ s/[^\d]*//g;
+	$glyph_code =~ s/[^\d]*//g;
 
 	my $sth;
-	if (!defined $self->{_sth_char_type}) {
-		$sth = ($self->{_sth_char_type} = $self->{_dbh}->prepare_cached(
-		"SELECT ct.name FROM char_type ct, `char` c WHERE c.char_type_id = ".
-		"ct.char_type_id AND c.char_code = ? AND c.page_number = ?"));
+	if (!defined $self->{_sth_glyph_type}) {
+		$sth = ($self->{_sth_glyph_type} = $self->{_dbh}->prepare_cached(
+		"SELECT gt.name FROM glyph_type gt, glyph g WHERE g.glyph_type_id = ".
+		"gt.glyph_type_id AND g.glyph_code = ? AND g.page_number = ?"));
 	}
 	else {
-		$sth = $self->{_sth_char_type};
+		$sth = $self->{_sth_glyph_type};
 	}
 
-	$sth->execute($char_code, $page_number);
+	$sth->execute($glyph_code, $page_number);
 
-	my ($char_type) = $sth->fetchrow_array;
+	my ($glyph_type) = $sth->fetchrow_array;
 
 	$sth->finish;
 
-	return $char_type? $char_type : '';
+	return $glyph_type? $glyph_type : '';
 }
 
 sub _get_word_lemma {
-	my ($self, $char_code, $page_number) = @_;
-	$char_code =~ s/[^\d]//g;
+	my ($self, $glyph_code, $page_number) = @_;
+	$glyph_code =~ s/[^\d]//g;
 
 	my $sth;
 
 	if (!defined $self->{_sth_word_lemma}) {
 		$sth = ($self->{_sth_word_lemma} = $self->{_dbh}->prepare_cached(
-		"SELECT wl.value FROM word_lemma wl, word w, `char` c WHERE ".
-		"w.word_lemma_id = wl.word_lemma_id AND w.char_id = c.char_id AND ".
-		"c.char_code = ? AND w.page_number = ?"));
+		"SELECT wl.value FROM word_lemma wl, word w, glyph g WHERE ".
+		"w.word_lemma_id = wl.word_lemma_id AND w.glyph_id = g.glyph_id AND ".
+		"g.glyph_code = ? AND w.page_number = ?"));
 	}
 	else {
 		$sth = $self->{_sth_word_lemma};
 	}
 
-	$sth->execute($char_code, $page_number);
+	$sth->execute($glyph_code, $page_number);
 
 	my ($word_lemma) = $sth->fetchrow_array;
 
