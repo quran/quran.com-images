@@ -14,8 +14,6 @@ use File::Path qw/make_path/;
 
 use constant PHI => ((sqrt 5) + 1) / 2;
 use constant phi => (((sqrt 5) + 1) / 2) - 1;
-use constant phI => phi ** 5 + 1;
-use constant PHi => phi ** 3 + PHI;
 
 sub ayah {
 	my $self = shift;

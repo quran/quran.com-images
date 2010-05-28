@@ -65,13 +65,13 @@ sub _get_page_lines {
 	return $page_lines;
 }
 
-sub _get_ornament_glyph {
+sub get_ornament_glyph_code {
 	my ($self, $name) = @_;
 
 	my $sth;
 	if (!defined $self->{_sth_ornament}) {
 		$sth = ($self->{_sth_ornament} = $self->{_dbh}->prepare_cached(
-		"SELECT g.font_file, g.glyph_code FROM glyph g, glyph_type gt, ".
+		"SELECT g.glyph_code FROM glyph g, glyph_type gt, ".
 		"glyph_type gtp WHERE g.glyph_type_id = gt.glyph_type_id AND ".
 		"gt.parent_id = gtp.glyph_type_id AND gtp.name = 'ornament' AND ".
 		"gt.name = ?"));
@@ -82,14 +82,13 @@ sub _get_ornament_glyph {
 
 	$sth->execute($name);
 
-	my ($font_file, $glyph_code) = $sth->fetchrow_array;
+	my ($glyph_code) = $sth->fetchrow_array;
 
 	$glyph_code = '&#'. $glyph_code .';';
-	$font_file = Quran::FONTS_DIR .'/'. $font_file;
 
 	$sth->finish;
 
-	return ($font_file, $glyph_code);
+	return $glyph_code;
 }
 
 sub _get_glyph_type {

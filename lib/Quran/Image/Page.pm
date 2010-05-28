@@ -5,14 +5,21 @@ use warnings;
 
 use base qw/Quran Quran::Image/;
 
+use constant DEFAULT_FONT_FILE => Quran::FONTS_DIR .'/QCF_BSML.TTF';
+
 sub generate {
 	my ($self, %opt) = @_;
 
-	my $page = ($self->{_page} = $opt{page}) || 'all';
-	my $path = ($self->{_path} = $opt{path}) || Quran::ROOT_DIR .'/images';
-	my $width = ($self->{_width} = $opt{width}) || 800;
-	my $height = ($self->{_height} = $width * Quran::Image::PHI);
-	my $font_size = ($self->{_font_size} = $width / 20);
+	$self->{_page_number} = $opt{page_number} || 'all';
+	$self->{_path} = $opt{path} || Quran::ROOT_DIR .'/images';
+	$self->{_width} = $opt{width} || 800;
+	$self->{_height} = $width * Quran::Image::PHI;
+	$self->{_font_file} = DEFAULT_FONT_FILE;
+	$self->{_font_size} = $width / 20;
+	$self->{_gd_text} = GD::Text->new(
+		font   => $font_file,
+		ptsize => $font_size
+	) or die GD::Text::error();
 
 	if ($page eq 'all') {
 		for my $page (reverse 1..604) {
@@ -33,179 +40,196 @@ sub _create_image {
 
 	print "Page: $page_number\n";
 
+	$self->{_coord_y} = 0;
+
 	my $page_lines = $self->db->_get_page_lines($page_number);
-	my $image = ($self->{_image} = GD::Image->new($self->{_width},
-		$self->{_height}));
-	my $colors = ($self->{_color} = {
+	my $image = ($self->{_gd_image} = GD::Image->new($self->{_width}, $self->{_height}));
+	my $colors = ($self->{_colors} = {
+		debug => $image->colorAllocate(255,160,64),
 		bg    => $image->colorAllocate(255,255,242),
 		red   => $image->colorAllocate(255,0,0),
 		white => $image->colorAllocate(255,255,255),
 		black => $image->colorAllocate(0,0,0)
 	});
-	my $line_coord_y = 0;
 	my $font_size = $self->{_font_size};
 
 	$image->transparent( $colors->{white} );
 	$image->interlaced('true');
 
 	while (my $page_line = shift @{ $page_lines }) {
-		my $font_file = $page_line->{font_file};
-		my $line_type = $page_line->{line_type};
-		my $line_text = $page_line->{line_text};
+		my $font_file   = $page_line->{font_file};
+		my $line_type   = $page_line->{line_type};
+		my $line_text   = $page_line->{line_text};
 		my $line_number = $page_line->{line_number};
-		my $gd_text = GD::Text->new(
-			font => $font_file,
+
+		$self->{_gd_text}->set(
+			font   => $font_file,
 			ptsize => $font_size
 		) or die GD::Text::error();
-	
-		$gd_text->set_text($line_text);
+		$self->{_gd_text}->set_text($line_text);
 
-		my ($line_up, $line_down, $line_space) = $gd_text->get('char_up', 'char_down',
-			'space');
+		my ($line_char_up, $line_char_down, $line_space, $line_width) = $self->{_gd_text}->get('char_up', 'char_down', 'space', 'width');
 
-		my @line_bb = GD::Image->stringFT($colors->{black}, $font_file, $font_size,
-			0, 0, $line_coord_y, $line_text);
-		my $line_width = List::Util::max($line_bb[4], $line_bb[2]) + $line_space;
+		# @_bbox[0,1]  Lower left corner (x,y)
+		# @_bbox[2,3]  Lower right corner (x,y)
+		# @_bbox[4,5]  Upper right corner (x,y)
+		# @_bbox[6,7]  Upper left corner (x,y)
 
-		# set x to the pixel coordinate of the beginning of the left margin
-		my $line_coord_x = ($self->{_width} - $line_width - $line_space) / 2;
+		my @line_bbox = GD::Image->stringFT($colors->{black}, $font_file, $font_size, 0, 0, $self->{_coord_y}, $line_text);
+
+		my $line_x_min = List::Util::min($line_bbox[0], $line_bbox[6]);
+		my $line_x_max = List::Util::max($line_bbox[4], $line_bbox[2]);
+
+		if ($line_width >= $self->{_width}) {
+			print "NOTICE: line_width $line_width, line_space $line_space, line_x_min $line_x_min, line_x_max $line_x_max, line_char_down $line_char_down, line_char_up $line_char_up\n";
+		}
+
+		my $line_coord_x = ($self->{_width} - $line_width) / 2;
 
 		# adjust line_coord_y coordinate is in negative space
-		if ($line_bb[7] < 0 || $line_bb[5] < 0) {
-			$line_coord_y += -1 * List::Util::max($line_bb[7], $line_bb[5]) - 2 * $line_down;
+		if ($line_bbox[7] < 0 || $line_bbox[5] < 0) {
+			$self->{_coord_y} += -1 * List::Util::min($line_bbox[7], $line_bbox[5]) - 2 * $line_char_down;
 		}
 
 		# create the string of glyph codes for the line, e.g. "&#64432;&#64365"
 		my @glyph_codes = split /;/, $line_text;
 		$_ .= ';' for @glyph_codes;
 
-		my ($word_coord_x, $word_width, $title_coord_x, $title_width, $title_down, $glyph_position)
-			= (undef, undef, undef, undef, undef, 1);
+		# word width needs to be defined here for proper scoping
+		my ($word_coord_x, $word_width) = (undef, undef);
+		my ($title_coord_x, $title_width, $title_down) = (undef, undef, undef, undef, undef);
 
-		my $header_down = 0;
-		for (my $i = 0; $i < scalar @glyph_codes; $i++) {
-			my $glyph_code = $glyph_codes[$i];
+		for (my $position = 1; $position <= scalar @glyph_codes; $position++) {
+			my $glyph_code = $glyph_codes[$position - 1];
+
+			$self->{_gd_text}->set_text($glyph_code);
+
+			my ($word_char_up, $word_char_down, $word_space) = $self->{_gd_text}->get('char_up', 'char_down', 'space');
 
 			if (!defined $word_coord_x) {
-				$word_coord_x = $line_coord_x;
+				$word_coord_x = $line_coord_x - 2 * $word_space;
 			}
 			else {
 				$word_coord_x += $word_width;
 			}
 
-			my @word_bb = GD::Image->stringFT($colors->{black}, $font_file, $font_size,
-				0, 0, $line_coord_y, $glyph_code);
+			my @word_bbox = GD::Image->stringFT($colors->{black}, $font_file, $font_size, 0, 0, $self->{_coord_y}, $glyph_code);
 
-			# here we make use of the word's bounding box
-			$word_width = List::Util::max($word_bb[4], $word_bb[2]);
+			my $word_x_min = List::Util::min($word_bbox[0], $word_bbox[6]);
+			my $word_x_max = List::Util::max($word_bbox[4], $word_bbox[2]);
+
+			$word_width = $word_x_max;
 
 			# draw a header box glyph if this line is supposed to be a sura header
-			if ($line_type eq 'sura-header') {
-				if ($glyph_position == 1) {
-					my ($font_file, $glyph_code) = $self->db->_get_ornament_glyph('header-box');
-					my $font_size = $font_size * Quran::Image::PHi;
-
-					$gd_text->set( ptsize => $font_size );
-					$gd_text->set_text($glyph_code);
-					$header_down = $gd_text->get('char_down');
-
-					my @header_bb = GD::Image->stringFT($colors->{black}, $font_file,
-						$font_size, 0, 0, $line_coord_y, $glyph_code);
-					my $header_width = List::Util::max($header_bb[4], $header_bb[2]);
-					my $header_coord_x = ($self->{_width} - $header_width) / 2;
-
-					# adjust line_coord_y coordinate is in negative space
-					my $coord_y = $line_coord_y;
-					if ($header_bb[7] < 0 || $header_bb[5] < 0) {
-						$coord_y += -1 * List::Util::max($header_bb[7], $header_bb[5]);
-					}
-
-					$self->{_sura_number} = 114 if not defined $self->{_sura_number};
-
-					print "\tSura ". $self->{_sura_number}-- ."\n";
-
-					$self->{_image}->stringFT($colors->{black}, $font_file, $font_size, 0,
-						$header_coord_x, $coord_y - $line_down, $glyph_code);
-				}
-
-				if (1) {
-					my $font_size = $font_size * Quran::Image::phI;
-					$gd_text->set( ptsize => $font_size );
-					$gd_text->set_text($glyph_code);
-					$title_down = $gd_text->get('char_down');
-					my $title_space = $gd_text->get('space');
-
-					my @title_bb;
-					if (!defined $title_coord_x) {
-						my $title_text = $glyph_code . $glyph_codes[$i+1];
-						$gd_text->set_text($title_text);
-						$title_down = $gd_text->get('char_down');
-						@title_bb = GD::Image->stringFT($colors->{black}, $font_file,
-							$font_size, 0, 0, $line_coord_y, $title_text);
-						my $title_width = List::Util::max($title_bb[4], $title_bb[2]);
-						$title_coord_x = ($self->{_width} - $title_width - 2 * $title_space) / 2;
-					}
-					else {
-						$title_coord_x += $title_width;
-					}
-
-					@title_bb = GD::Image->stringFT($colors->{black}, $font_file,
-						$font_size, 0, 0, $line_coord_y, $glyph_code);
-
-					$title_width = List::Util::max($title_bb[4], $title_bb[2]);
-
-					my $coord_y = $line_coord_y - $line_down;
-					$coord_y -= 1.5 * $header_down if $line_number == 1;
-					$self->{_image}->stringFT($colors->{black}, $font_file, $font_size, 0,
-						$title_coord_x, $coord_y, $glyph_code);
-				}
-
+			if ($line_type eq 'sura') {
+				$self->_draw_sura_line($position, $glyph_code);
+			}
+=cut
+			elsif ($line_type eq 'ayah') {
+				$self->_draw_ayah_line;
 			}
 			elsif ($line_type eq 'bismillah') {
-				if ($glyph_position == 1) {
-					my $glyph_type = $self->db->_get_glyph_type($glyph_code, 0);
-					if ($glyph_type eq 'bismillah-default') {
-						$line_coord_y -= $line_down;
-					}
-				}
-
-				my $coord_y = $line_coord_y;
-				if ($line_number > 2) {
-					$coord_y += 2 * $line_down;
-				}
-				else {
-					$coord_y -= 1 * $line_down;
-				}
-
-				$self->{_image}->stringFT($colors->{black}, $font_file, $font_size,
-					0, $word_coord_x, $coord_y, $glyph_code);
-
-				if ($glyph_position == 3 && $line_number <= 2) {
-					$line_coord_y -= 3 * $line_down;
-				}
+				$self->_draw_bismillah_line;
 			}
-			elsif ($line_type eq 'ayah-text') {
-				# assign color to the word
-				my $word_color = $self->_is_mention_of_Allah($glyph_code, $page_number,
-					$line_type)? $colors->{red} : $colors->{black};
-				# render the individual word
-				$self->{_image}->stringFT($word_color, $font_file, $font_size,
-					0, $word_coord_x, $line_coord_y + 2 * $line_down, $glyph_code);
-			}
-
-			$glyph_position++;
+=cut
 		}
 
+		# adjust $self->{_coord_y} for next iteration
 		if ($page_number == 1 || $page_number == 2) {
-			$line_coord_y += Quran::Image::PHI * $line_up;
+			$self->{_coord_y} += Quran::Image::PHI * $line_char_up; # adjustment for surat al fatiha and surat al baqara
 		}
 		else {
-			$line_coord_y += 2 * $line_up;
+			$self->{_coord_y} += 2 * $line_char_up; # adjustment for all other pages
 		}
 	}
 
 	return $image;
 }
+
+sub _get_coords {
+	my ($self, $font_file, $font_size, $glyph_code) = @_;
+
+	$self->{_gd_text}->set(
+		font   => $font_file,
+		ptsize => $font_size
+	);
+	$self->{_gd_text}->set_text($glyph_code);
+
+	my ($space, $char_down, $char_up) = $self->{_gd_text}->get('space', 'char_down', 'char_up');
+
+	my @bbox = GD::Image->stringFT($self->{_colors}->{black}, $font_file, $font_size, 0, 0, 0, $glyph_code);
+	my $x_min = List::Util::min($bbox[0], $bbox[6]);
+	my $x_max = List::Util::max($bbox[4], $bbox[2]);
+	my $y_min = List::Util::min($bbox[7], $bbox[5]);
+	my $y_max = List::Util::max($bbox[1], $bbox[3]);
+	my $width = $x_max - $x_min - $space;
+
+	#print "max $x_max, min $x_min, space $space, width $width\n";
+	#print "down $char_down, up $char_up\n";
+
+	my $coord_x = ($self->{_width} - $width) / 2;
+	my $coord_y = $self->{_coord_y};
+
+	$coord_y -= $y_min if $y_min < 0;
+	$coord_y -= $char_down;
+
+	return ($coord_x, $coord_y, $x_min, $x_max, $y_min, $y_max);
+}
+
+sub _draw_sura_line {
+	my $self = shift;
+	my ($position, $glyph_code) = @_;
+	my $coord_y = $self->{_coord_y};
+	my $font_file = DEFAULT_FONT_FILE;
+	
+	if ($position == 1) {
+		my $glyph_code = $self->db->get_ornament_glyph_code('header-box');
+		my $font_size = $self->{_font_size} * (Quran::Image::phi ** 3 + Quran::Image::PHI);
+		my ($coord_x, $coord_y) = $self->_get_coords($font_file, $font_size, $glyph_code);
+
+		$self->{_sura_number} = 114 if not defined $self->{_sura_number};
+
+		print "\tSura ". $self->{_sura_number}-- ."\n";
+
+		$self->{_gd_image}->stringFT($self->{_colors}->{black}, $font_file, $font_size, 0, $coord_x, $coord_y, $glyph_code);
+	}
+
+	my $font_size = $self->{_font_size} * 1.1;# * (Quran::Image::phi ** 5 + 1);
+	my ($coord_x, $coord_y) = $self->_get_coords($font_file, $font_size, $glyph_code);
+
+	return $self->{_gd_image}->stringFT($self->{_colors}->{black}, $font_file, $font_size, 0, $coord_x, $coord_y, $glyph_code);
+}
+=cut
+sub _draw_ayah_line {
+				# assign color to the word
+				my $word_color = $self->_is_mention_of_Allah($glyph_code, $page_number, $line_type)? $colors->{red} : $colors->{black};
+				# render the individual word
+				$self->{_gd_image}->stringFT($word_color, $font_file, $font_size, 0, $word_coord_x, $line_coord_y + 2 * $line_char_down, $glyph_code);
+}
+
+sub _draw_bismillah_line {
+				if ($position == 1) {
+					my $glyph_type = $self->db->_get_glyph_type($glyph_code, 0);
+					if ($glyph_type eq 'bismillah-default') {
+						$line_coord_y -= $line_char_down;
+					}
+				}
+
+				my $coord_y = $line_coord_y;
+				if ($line_number > 2) {
+					$coord_y += 2 * $line_char_down;
+				}
+				else {
+					$coord_y -= 1 * $line_char_down;
+				}
+
+				$self->{_gd_image}->stringFT($colors->{black}, $font_file, $font_size, 0, $word_coord_x, $coord_y, $glyph_code);
+
+				if ($position == 3 && $line_number <= 2) {
+					$line_coord_y -= 3 * $line_char_down;
+				}
+}
+=cut
 
 1;
 __END__
