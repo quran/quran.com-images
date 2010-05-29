@@ -33,7 +33,7 @@ sub page {
 	return $self->{_page};
 }
 
-sub _write_image {
+sub write {
 	my ($self, $path, $page, $image) = @_;
 
 	File::Path::make_path($path, {
