@@ -170,28 +170,11 @@ sub _set_box {
 		$max_y = int($max_y + 0.5);
 
 		$self->db->set_page_line_bbox($glyph->{page_line_id}, $page->{width}, $min_x, $max_x, $min_y, $max_y);
-
-=cut
-		(my $font_file = $line->{font}) =~ s/^.*(.{12})$/$1/;
-		my ($arabic, $lemma, $root, $stem) = ('', '', '', '');
-		if ($font ne 'QCF_BSML.TTF') {
-			$arabic = $self->db->_get_word_val('arabic', $glyph->{code}, $page->{number});
-			$lemma = $self->db->_get_word_val('lemma', $glyph->{code}, $page->{number});
-			$root = $self->db->_get_word_val('root', $glyph->{code}, $page->{number});
-			$stem = $self->db->_get_word_val('stem', $glyph->{code}, $page->{number});
-		}
-
-		my $bound_str = '';
-		$bound_str .= "$_ " for @{ $glyph->{box}->{bbox} };
-
-		print $font_file .':'. $page->{number} .":". $line->{number} .':'. $glyph->{position} .':'. $glyph->{code} ." \t ".
-			"min($min_x, $min_y)  max($max_x, $max_y) \t $arabic \t $lemma \t $root \t $stem \n";
-=cut
 	}
 
 	$page->{image}->stringFT($color, $font, $ptsize, 0, $coord_x, $coord_y, $glyph->{text}, {
-			resolution => '96,94',
-			kerning => 0
+		resolution => '96,94',
+		kerning => 0
 	});
 
 	return $box;

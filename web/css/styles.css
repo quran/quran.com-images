@@ -1,0 +1,4 @@
+.playdiv { background: beige; width: 800px; }
+.play_control { float: right; }
+a { text-decoration: none; color: teal; }
+a:visited { color: teal; text-decoration: none; }
