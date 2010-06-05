@@ -55,7 +55,7 @@ sub _is_mention_of_Allah {
 	# don't highlight Allah in bismillah (for now)
 	return 0 if defined $line_type and $line_type eq 'bismillah';
 
-	my $lemma = $self->db->_get_word_lemma($glyph_code, $page_number);
+	my $lemma = $self->db->_get_word_val('lemma', $glyph_code, $page_number);
 
 	return ($lemma eq '{ll~ah' or $lemma eq 'rab~')? 1 : 0;
 }

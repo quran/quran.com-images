@@ -47,10 +47,11 @@ sub create {
 
 	print "Page: ". $page->{number} ."\n";
 
-	$page->{coord_y} = 0;
 	$page->{width}   = $self->{_width};
 	$page->{height}  = $self->{_width} * Quran::Image::PHI;
-	$page->{ptsize}  = $self->{_width} / 21;
+	$page->{ptsize}  = int($self->{_width} / 21);
+	$page->{margin_top} = $page->{ptsize} / 2;
+	$page->{coord_y} = $page->{margin_top};
 	$page->{font}    = FONT_DEFAULT; # TODO: determine font size algorithmically and trim page height to fit or force fit
 	$page->{image} = GD::Image->new($page->{width}, $page->{height});
 	$page->{color} = {
@@ -74,8 +75,8 @@ sub create {
 
 		$line->{box} = $self->_get_box($line);
 
-		$page->{coord_y} -= $line->{box}->{y_min}
-			if $page->{coord_y} == 0 and $line->{box}->{y_min} < 0;
+		$page->{coord_y} -= $line->{box}->{min_y}
+			if $page->{coord_y} <= $page->{margin_top} and $line->{box}->{min_y} < 0;
 
 		$line->{previous_w} = 0;
 		$page->{coord_x} = 0;
@@ -85,49 +86,32 @@ sub create {
 			$glyph->{line} = $line;
 			$glyph->{box} = $self->_get_box($glyph);
 
-
 			if ($glyph->{position} == 1 and $line->{type} eq 'sura') {
 				my $glyph = $self->db->get_ornament_glyph('header-box');
 				$glyph->{line} = $line;
 
-				$glyph->{ptsize} = $page->{ptsize} * (Quran::Image::phi ** 3 + Quran::Image::PHI);
+				$glyph->{ptsize} = $page->{ptsize} * 1.8;
 
 				$glyph->{box} = $self->_get_box($glyph);
 
-				$glyph->{box}->{coord_y} += $glyph->{box}->{y_min} if $glyph->{box}->{y_min} < 0;
-				$glyph->{box}->{coord_y} -= 2 * $glyph->{box}->{char_down};
+				$glyph->{use_coords} = 1;
 
-				$glyph->{use_box_coords} = 1;
+				$glyph->{box}->{coord_y} = $page->{coord_y};
+				$glyph->{box}->{coord_y} -= $glyph->{box}->{char_down};
 
 				$self->_set_box($glyph);
-
-				$page->{coord_y} += $glyph->{box}->{y_min} if $glyph->{box}->{y_min} < 0;
-				$page->{coord_y} -= 2 * $glyph->{box}->{char_down};
-
-				$line->{box} = $self->_get_max_box($glyph->{box}, $line->{box});
 			}
-
 
 			$page->{coord_x} = $page->{coord_x} ?
 				$page->{coord_x} + $line->{previous_w} :
-				$line->{box}->{coord_x} - 4 * $line->{box}->{space};
+				$line->{box}->{coord_x};
 
-			$page->{coord_x} += $glyph->{box}->{space}
-				if $line->{type} eq 'bismillah';
-
-			$line->{previous_w} = ($line->{type} eq 'ayah' or $line->{type} eq 'sura') ?
-				$glyph->{box}->{x_max} : $glyph->{box}->{width};
+			$line->{previous_w} = $glyph->{box}->{max_x};
 
 			if ($line->{type} eq 'sura') {
-				$glyph->{use_box_coords} = 1;
-				$glyph->{box}->{coord_x} = $page->{coord_x};
+				$glyph->{use_coord_y} = 1;
 				$glyph->{box}->{coord_y} = $page->{coord_y};
-				if ($glyph->{position} == 1) {
-					$glyph->{box}->{coord_y} -= $glyph->{box}->{y_min} if $glyph->{box}->{y_min} < 0;
-					$glyph->{box}->{coord_y} -= (Quran::Image::phi ** 3 + Quran::Image::PHI) * $glyph->{box}->{char_down};
-					$glyph->{box}->{coord_x} += 3 * $glyph->{box}->{space};
-				}
-				$glyph->{box}->{coord_y} -= 5 * $glyph->{box}->{char_down};
+				$glyph->{box}->{coord_y} += $line->{box}->{height} / 7;
 			}
 
 			$glyph->{box} = $self->_set_box($glyph);
@@ -141,7 +125,7 @@ sub create {
 			$page->{coord_y} += Quran::Image::PHI * $line->{box}->{char_up};
 		}
 		else {
-			$page->{coord_y} += 1.9 * $line->{box}->{char_up};
+			$page->{coord_y} += 2 * $line->{box}->{char_up};
 		}
 	}
 
@@ -159,8 +143,6 @@ sub _set_box {
 
 	my $box = $glyph->{box};
 
-	$page->{coord_x} -= 2 * $box->{space} if $line->{type} eq 'sura';
-
 	my $color = $page->{color}->{black};
 
 	if ($line->{type} eq 'ayah') {
@@ -168,18 +150,48 @@ sub _set_box {
 			$page->{color}->{red} : $page->{color}->{black};
 	}
 
-	my ($coord_x,  $coord_y) = (0, 0);
+	# begin hack
+	my ($coord_x, $coord_y) = $glyph->{use_coords} ? ($glyph->{box}->{coord_x}, $glyph->{box}->{coord_y}) : ($page->{coord_x}, $page->{coord_y});
+	$coord_x = $glyph->{box}->{coord_x} if $glyph->{use_coord_x};
+	$coord_y = $glyph->{box}->{coord_y} if $glyph->{use_coord_y};
+	# end of hack
 
-	if ($glyph->{use_box_coords}) {
-		($coord_x, $coord_y) = ($glyph->{box}->{coord_x}, $glyph->{box}->{coord_y});
-	}
-	else {
-		($coord_x, $coord_y) = ($page->{coord_x}, $page->{coord_y});
+	if ($line->{type} eq 'ayah') {
+		my ($min_x, $max_x, $min_y, $max_y) = (undef, undef, undef, undef);
+
+		$min_x = $page->{coord_x} + $glyph->{box}->{min_x};
+		$min_x = int($min_x);
+		$max_x = $min_x + ($glyph->{box}->{max_x} - $glyph->{box}->{min_x});
+		$max_x = int($max_x + 0.5);
+
+		$min_y = $page->{coord_y} + $glyph->{box}->{min_y};
+		$min_y = int($min_y);
+		$max_y = $min_y + ($glyph->{box}->{max_y} - $glyph->{box}->{min_y});
+		$max_y = int($max_y + 0.5);
+
+		$self->db->set_page_line_bbox($glyph->{page_line_id}, $page->{width}, $min_x, $max_x, $min_y, $max_y);
+
+=cut
+		(my $font_file = $line->{font}) =~ s/^.*(.{12})$/$1/;
+		my ($arabic, $lemma, $root, $stem) = ('', '', '', '');
+		if ($font ne 'QCF_BSML.TTF') {
+			$arabic = $self->db->_get_word_val('arabic', $glyph->{code}, $page->{number});
+			$lemma = $self->db->_get_word_val('lemma', $glyph->{code}, $page->{number});
+			$root = $self->db->_get_word_val('root', $glyph->{code}, $page->{number});
+			$stem = $self->db->_get_word_val('stem', $glyph->{code}, $page->{number});
+		}
+
+		my $bound_str = '';
+		$bound_str .= "$_ " for @{ $glyph->{box}->{bbox} };
+
+		print $font_file .':'. $page->{number} .":". $line->{number} .':'. $glyph->{position} .':'. $glyph->{code} ." \t ".
+			"min($min_x, $min_y)  max($max_x, $max_y) \t $arabic \t $lemma \t $root \t $stem \n";
+=cut
 	}
 
 	$page->{image}->stringFT($color, $font, $ptsize, 0, $coord_x, $coord_y, $glyph->{text}, {
-		resolution => '96,94',
-		kerning => 0
+			resolution => '96,94',
+			kerning => 0
 	});
 
 	return $box;
@@ -208,33 +220,40 @@ sub _get_box {
 	# @bbox[6,7]  Upper left corner (x,y)
 
 	my @bbox = GD::Image->stringFT($page->{color}->{black}, $font, $ptsize, 0, 0, 0, $glyph->{text});
-	my $x_min = List::Util::min($bbox[0], $bbox[6]);
-	my $x_max = List::Util::max($bbox[4], $bbox[2]);
-	my $y_min = List::Util::min($bbox[7], $bbox[5]);
-	my $y_max = List::Util::max($bbox[1], $bbox[3]);
+	my $min_x = List::Util::min($bbox[0], $bbox[6]);
+	my $max_x = List::Util::max($bbox[4], $bbox[2]);
+	my $min_y = List::Util::min($bbox[7], $bbox[5]);
+	my $max_y = List::Util::max($bbox[1], $bbox[3]);
 
-	my $width = $x_max;
-
-	$width -= $x_min   if $line->{type} eq 'sura' and $glyph->{type} eq 'header-box';
-	$width += $space   if $line->{type} eq 'bismillah';
+	my $width = $max_x;# - $min_x;
+	my $height = $max_y - $min_y;
 
 	my $coord_x = ($page->{width} - $width) / 2;
 	my $coord_y = $page->{coord_y};
 
-	$coord_y -= $y_min if $y_min < 0;
-	$coord_y -= $char_down;
-
 	return {
 		coord_x   => $coord_x,
 		coord_y   => $coord_y,
-		x_min     => $x_min,
-		x_max     => $x_max,
-		y_min     => $y_min,
-		y_max     => $y_max,
+		min_x     => $min_x,
+		max_x     => $max_x,
+		min_y     => $min_y,
+		max_y     => $max_y,
 		space     => $space,
 		char_down => $char_down,
 		char_up   => $char_up,
-		width     => $width
+		width     => $width,
+		height    => $height,
+		bbox      => \@bbox,
+		corner    => {
+			top => {
+				left  => [$bbox[6],$bbox[7]],
+				right => [$bbox[4],$bbox[5]]
+			},
+			bottom => {
+				left  => [$bbox[0],$bbox[1]],
+				right => [$bbox[2],$bbox[3]]
+			}
+		}
 	};
 }
 
@@ -242,13 +261,13 @@ sub _get_max_box {
 	my $self = shift;
 	my ($box_a, $box_b) = @_;
 	my $box_c;
-	my @lt = qw/x_min y_min char_down coord_x coord_y/;
-	my @gt = qw/x_max y_max space char_up width/;
+	my @lt = qw/min_x min_y char_down coord_x coord_y/;
+	my @gt = qw/max_x max_y space char_up width height/;
 	for (@lt) {
-		$box_c->{$_} = ($box_a->{$_} < $box_b->{$_})? $box_a->{$_} : $box_b->{$_};
+		$box_c->{$_} = ($box_a->{$_} <= $box_b->{$_})? $box_a->{$_} : $box_b->{$_};
 	}
 	for (@gt) {
-		$box_c->{$_} = ($box_a->{$_} > $box_b->{$_})? $box_a->{$_} : $box_b->{$_};
+		$box_c->{$_} = ($box_a->{$_} >= $box_b->{$_})? $box_a->{$_} : $box_b->{$_};
 	}
 	return $box_c;
 }
