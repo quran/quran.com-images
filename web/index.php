@@ -92,7 +92,7 @@ $cmd = ($autoplay? 'stop' : 'play');
       <? } ?>
       </map>
 
-      <div class="playdiv">
+      <div class="playdiv" style="display: none;">
          <a href="index.php?page=<? echo $prev ?>">prev</a> |
          <a href="index.php?page=<? echo $next ?>">next</a>
          <div class="play_control">
@@ -100,7 +100,9 @@ $cmd = ($autoplay? 'stop' : 'play');
          </div>
       </div>
 
-      <img id="map" src="images/pages/<? echo $width ?>/<? echo $page ?>.png" border="0" usemap="#mushaf_page" alt="" />
+      <div id="mushaf_div" style="width: <? echo $width ?>px;">
+         <img id="map" src="images/pages/<? echo $width ?>/<? echo $page ?>.png" border="0" usemap="#mushaf_page" alt="" />
+      </div>
 
       <script type="text/javascript" src="jquery-qtip/jquery-1.3.2.min.js"></script>
       <script type="text/javascript" src="jquery-qtip/jquery.qtip-1.0.0-rc3.min.js"></script>
@@ -145,15 +147,21 @@ $cmd = ($autoplay? 'stop' : 'play');
             // Use the each() method to gain access to each elements attributes
             $('area').each(function(){
                var word_id = $(this).attr('id').replace(/^word_id_/, '');
-               var content = '<div>'+
+               var content = '<div style="text-align: center; padding: 6px;">'+
                      '<div>'+
-                        '<span>'+ window.map_elems[word_id]['translation'] +'</span>'+
+                        '<span style="padding: 6px; font-size: 16pt; font-weight: bold; font-family: sans-serif;">'+ window.map_elems[word_id]['translation'] +'</span>'+
                      '</div>'+
                      '<br/>'+
                      '<img src="http://corpus.quran.com/wordimage?id=' + word_id + '" alt="" />'+
                   '</div>';
                $(this).qtip({
                   content: content,
+                  position: {
+                     corner: {
+                        target: 'bottomMiddle',
+                        tooltip: 'topMiddle'
+                     }
+                  },
                   style: {
                      name: 'light', // Give it the preset dark style
                      border: {
