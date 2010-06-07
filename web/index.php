@@ -32,106 +32,142 @@ while ($row = mysql_fetch_assoc($res)){
    $lookup[$row['glyph_code']] = $row;
 }
 
-$map_elems = '';
-$q = "select w.word_id, w.sura_number, w.ayah_number, w.position, g.glyph_code
-        from word w, glyph g
+$language_code = 'en'; # TODO: hack
+
+$map_elems = array();
+$words = array();
+#$q = "select w.word_id, w.sura_number, w.ayah_number, w.position, g.glyph_code
+#        from word w, glyph g
+#       where w.glyph_id = g.glyph_id
+#         and w.page_number = $page";
+$q = "select w.word_id, w.sura_number, w.ayah_number, w.position, g.glyph_code,
+             wa.value as arabic, wr.value as root, ws.value as stem,
+             wl.value as lemma, wt.value as translation
+        from glyph g, word w
+        left join word_arabic wa on w.word_arabic_id = wa.word_arabic_id
+        left join word_root wr on w.word_root_id = wr.word_root_id
+        left join word_stem ws on w.word_stem_id = ws.word_stem_id
+        left join word_lemma wl on w.word_lemma_id = wl.word_lemma_id
+        left join (word_translation wt join language l on
+            wt.language_id = l.language_id and l.language_code = '$language_code'
+            and wt.strength=(select min(strength) from word_translation
+              where language_id = wt.language_id
+              and word_id = wt.word_id)) on w.word_id = wt.word_id
        where w.glyph_id = g.glyph_id
          and w.page_number = $page";
-
 $res = mysql_query($q) or die('could not query: ' . mysql_error());
 while ($row = mysql_fetch_assoc($res)){
    $word = array($row['glyph_code']);
    $coords = get_coord_str($word, $lookup);
    if (empty($coords)) continue;
-   $map_elems .= '<area shape="rect" word_id="' . $row['word_id'] .
-      '" coords="' . $coords . '" href="' .
+   $elem = '<area shape="rect" id="word_id_' . $row['word_id'] .'" coords="' . $coords . '" href="' .
       "http://corpus.quran.com/wordmorphology.jsp?location=(" .
-      $row['sura_number'] . ':' . $row['ayah_number'] . ':' . $row['position'] .
-      ')">' . "\n";
+      $row['sura_number'] . ':' . $row['ayah_number'] . ':' . $row['position'] .')" />';
+   $data = $row;
+   array_push($map_elems, array(
+      html => $elem,
+      data => $row
+   ));
 }
-print "<title>quran - $page</title>";
-print '<link rel="stylesheet" type="text/css" href="css/styles.css" />';
-print '<map name="mushaf_page">';
-print $map_elems;
-print '</map>';
 
 $mp3 = "http://everyayah.com/data/Husary_128kbps/PageMp3s/Page". sprintf('%03d', $page) .".mp3";
-
 $cmd = ($autoplay? 'stop' : 'play');
-print <<<CONTROLS
-   <div class="playdiv">
-     <a href="index.php?page=$prev">prev</a> |
-     <a href="index.php?page=$next">next</a>
-     <div class="play_control">
-        <a id="control" href="javascript:$cmd();">$cmd</a>
-     </div>
-   </div>
-CONTROLS;
-
-print "<img id=\"map\" src=\"images/$page.png\" border=\"0\" usemap=\"#mushaf_page\">";
 ?>
+<!DOCTYPE html>
+<html>
+   <head>
+      <title>quran - <? echo $page ?></title>
+      <link rel="stylesheet" type="text/css" href="css/styles.css" />
+      <script type="text/javascript">
+         window.map_elems = {};
+      <? foreach ($map_elems as $elem) { ?>
+         window.map_elems[<? echo $elem[data][word_id] ?>] = <? echo json_encode($elem[data]) ?>;
+      <? } ?>
+      </script>
+   </head>
+   <body>
+      <map name="mushaf_page">
+      <? foreach ($map_elems as $elem) { ?>
+         <? echo $elem[html] ."\n" ?>
+      <? } ?>
+      </map>
 
-<script type="text/javascript" 
-        src="jquery-qtip/jquery-1.3.2.min.js"></script>
-<script type="text/javascript" 
-        src="jquery-qtip/jquery.qtip-1.0.0-rc3.min.js"></script>
-<script type="text/javascript"
-        src="soundmanager2/script/soundmanager2-nodebug-jsmin.js"></script>
+      <div class="playdiv">
+         <a href="index.php?page=<? echo $prev ?>">prev</a> |
+         <a href="index.php?page=<? echo $next ?>">next</a>
+         <div class="play_control">
+            <a id="control" href="javascript:<? echo $cmd ?>();"><? echo $cmd ?></a>
+         </div>
+      </div>
 
-<script type="text/javascript">
-var current_mp3;
-soundManager.url = 'soundmanager2/swf/';
-soundManager.onload = function(){
-   current_mp3 = soundManager.createSound({
-      id: 'page_mp3',
-      url: '<?php echo $mp3; ?>',
-      onfinish: function(){ 
-         location.href = 'index.php?page=<?php echo $next; ?>&autoplay=1';
-      }
-   });
-<?php if ($autoplay){ echo "play();"; } ?>
-}
+      <img id="map" src="images/pages/<? echo $width ?>/<? echo $page ?>.png" border="0" usemap="#mushaf_page" alt="" />
 
-function update_elem(cmd, text){
-   elem = $("#control")[0];
-   elem.href = 'javascript:' + text + '();';
-   elem.innerHTML = text;
-}
-
-function play(){
-   current_mp3.play();
-   update_elem('stop', 'stop');
-}
-
-function stop(){
-   current_mp3.pause();
-   update_elem('resume', 'play');
-}
-
-function resume(){
-   current_mp3.resume();
-   update_elem('stop', 'stop');
-}
-
-// Create the tooltips only when document ready
-$(document).ready(function(){
-   // Use the each() method to gain access to each elements attributes
-   $('area').each(function(){
-      $(this).qtip({
-         content: '<img src="http://corpus.quran.com/wordimage?id=' + 
-                  $(this).attr('word_id') + '">', 
-         style: {
-            name: 'light', // Give it the preset dark style
-            border: {
-               width: 0, 
-               radius: 4 
-            }, 
-            tip: true // Apply a tip at the default tooltip corner
+      <script type="text/javascript" src="jquery-qtip/jquery-1.3.2.min.js"></script>
+      <script type="text/javascript" src="jquery-qtip/jquery.qtip-1.0.0-rc3.min.js"></script>
+      <script type="text/javascript" src="soundmanager2/script/soundmanager2-nodebug-jsmin.js"></script>
+      <script type="text/javascript">
+         var current_mp3;
+         soundManager.url = 'soundmanager2/swf/';
+         soundManager.onload = function(){
+            current_mp3 = soundManager.createSound({
+               id: 'page_mp3',
+               url: '<?php echo $mp3; ?>',
+               onfinish: function(){ 
+                  location.href = 'index.php?page=<?php echo $next; ?>&autoplay=1';
+               }
+            });
+         <?php if ($autoplay){ echo "play();"; } ?>
          }
-      });
-   });
-});
-</script>
+
+         function update_elem(cmd, text){
+            elem = $("#control")[0];
+            elem.href = 'javascript:' + text + '();';
+            elem.innerHTML = text;
+         }
+
+         function play(){
+            current_mp3.play();
+            update_elem('stop', 'stop');
+         }
+
+         function stop(){
+            current_mp3.pause();
+            update_elem('resume', 'play');
+         }
+
+         function resume(){
+            current_mp3.resume();
+            update_elem('stop', 'stop');
+         }
+
+         // Create the tooltips only when document ready
+         $(document).ready(function(){
+            // Use the each() method to gain access to each elements attributes
+            $('area').each(function(){
+               var word_id = $(this).attr('id').replace(/^word_id_/, '');
+               var content = '<div>'+
+                     '<div>'+
+                        '<span>'+ window.map_elems[word_id]['translation'] +'</span>'+
+                     '</div>'+
+                     '<br/>'+
+                     '<img src="http://corpus.quran.com/wordimage?id=' + word_id + '" alt="" />'+
+                  '</div>';
+               $(this).qtip({
+                  content: content,
+                  style: {
+                     name: 'light', // Give it the preset dark style
+                     border: {
+                        width: 0, 
+                        radius: 4 
+                     }, 
+                     tip: true // Apply a tip at the default tooltip corner
+                  }
+               });
+            });
+         });
+      </script>
+   </body>
+</html>
 
 <?php
 function get_coord_str($words, $lookup){
