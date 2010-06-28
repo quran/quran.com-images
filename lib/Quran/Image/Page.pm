@@ -5,8 +5,6 @@ use warnings;
 
 use base qw/Quran Quran::Image/;
 
-use constant FONT_DEFAULT => Quran::FONT_DIR .'/QCF_BSML.TTF';
-
 sub generate {
 	my $self = shift;
 	my %opts = @_;
@@ -52,10 +50,10 @@ sub create {
 	$page->{ptsize}  = int($self->{_width} / 21);
 	$page->{margin_top} = $page->{ptsize} / 2;
 	$page->{coord_y} = $page->{margin_top};
-	$page->{font}    = FONT_DEFAULT; # TODO: determine font size algorithmically and trim page height to fit or force fit
+	$page->{font}    = Quran::Image::FONT_DEFAULT; # TODO: determine font size algorithmically and trim page height to fit or force fit
 	$page->{image} = GD::Image->new($page->{width}, $page->{height});
 	$page->{color} = {
-		debug => $page->{image}->colorAllocate(225,225,225),
+		#debug => $page->{image}->colorAllocate(225,225,225),
 		white => $page->{image}->colorAllocateAlpha(255,255,255,127),
 		black => $page->{image}->colorAllocate(0,0,0),
 		red   => $page->{image}->colorAllocate(255,0,0)

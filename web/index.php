@@ -36,10 +36,6 @@ $language_code = 'en'; # TODO: hack
 
 $map_elems = array();
 $words = array();
-#$q = "select w.word_id, w.sura_number, w.ayah_number, w.position, g.glyph_code
-#        from word w, glyph g
-#       where w.glyph_id = g.glyph_id
-#         and w.page_number = $page";
 $q = "select w.word_id, w.sura_number, w.ayah_number, w.position, g.glyph_code,
              wa.value as arabic, wr.value as root, ws.value as stem,
              wl.value as lemma, wt.value as translation
@@ -62,7 +58,7 @@ while ($row = mysql_fetch_assoc($res)){
    if (empty($coords)) continue;
    $elem = '<area shape="rect" id="word_id_' . $row['word_id'] .'" coords="' . $coords . '" href="' .
       "http://corpus.quran.com/wordmorphology.jsp?location=(" .
-      $row['sura_number'] . ':' . $row['ayah_number'] . ':' . $row['position'] .')" />';
+      $row['sura_number'] . ':' . $row['ayah_number'] . ':' . $row['position'] .')"/>';
    $data = $row;
    array_push($map_elems, array(
       html => $elem,
@@ -148,18 +144,19 @@ $cmd = ($autoplay? 'stop' : 'play');
             $('area').each(function(){
                var word_id = $(this).attr('id').replace(/^word_id_/, '');
                var content = '<div style="text-align: center; padding: 6px;">'+
+                     '<img src="http://corpus.quran.com/wordimage?id=' + word_id + '" alt="" />'+
+                     '<br/>'+
+                     '<br/>'+
                      '<div>'+
                         '<span style="padding: 6px; font-size: 16pt; font-weight: bold; font-family: sans-serif;">'+ window.map_elems[word_id]['translation'] +'</span>'+
                      '</div>'+
-                     '<br/>'+
-                     '<img src="http://corpus.quran.com/wordimage?id=' + word_id + '" alt="" />'+
                   '</div>';
                $(this).qtip({
                   content: content,
                   position: {
                      corner: {
-                        target: 'bottomMiddle',
-                        tooltip: 'topMiddle'
+                        target: 'topMiddle',
+                        tooltip: 'bottomMiddle'
                      }
                   },
                   style: {

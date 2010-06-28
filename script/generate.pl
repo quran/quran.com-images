@@ -12,6 +12,29 @@ use Quran;
 use Pod::Usage;
 use Getopt::Long;
 
+=cut
+my ($sura, $ayah, $width, $output, $help) = (undef, undef, undef, 'images/ayahs', 0);
+
+GetOptions(
+	'sura:i'  => \$sura,
+	'ayah:i'  => \$ayah,
+	'width:i'  => \$width,
+	'output:s' => \$output,
+	'help|?'   => \$help,
+) or pod2usage(1); pod2usage(1) if $help;
+
+$output = "$FindBin::Bin/../$output";
+
+my $quran = new Quran;
+
+$quran->image->ayah->generate(
+	sura   => $sura,
+	ayah   => $ayah,
+	width  => $width,
+	output => $output
+);
+
+=cut
 my ($pages, $width, $output, $help) = ('1..604', 1167, 'images', 0);
 
 GetOptions(

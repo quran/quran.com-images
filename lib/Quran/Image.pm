@@ -11,7 +11,7 @@ use GD::Text::Align;
 use List::Util qw/min max/;
 use File::Path qw/make_path/;
 
-
+use constant FONT_DEFAULT => Quran::FONT_DIR .'/QCF_BSML.TTF';
 use constant PHI => ((sqrt 5) + 1) / 2;
 use constant phi => (((sqrt 5) + 1) / 2) - 1;
 
@@ -34,14 +34,14 @@ sub page {
 }
 
 sub write {
-	my ($self, $path, $page, $image) = @_;
+	my ($self, $path, $file, $image) = @_;
 
 	File::Path::make_path($path, {
 		verbose => 1,
 		mode => 0711
 	});
 
-	open PNG, ">$path/$page.png";
+	open PNG, ">$path/$file.png";
 	binmode PNG;
 
 	print PNG $image->png(0);

@@ -1,6 +1,6 @@
 * { position: relative; z-index: 0; }
 html { width: 100%; }
-body { margin: 0; padding: 24px 0 160px 0; width: 100%; }
+body { margin: 0; padding: 160px 0 160px 0; width: 100%; background-color: white; }
 #mushaf_div { margin: auto; }
 .playdiv { background: beige; width: 800px; }
 .play_control { float: right; }
