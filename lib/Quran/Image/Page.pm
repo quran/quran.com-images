@@ -10,8 +10,8 @@ sub generate {
 	my %opts = @_;
 
 	$self->{_pages}   = $opts{page}   || $opts{pages} || [1..604],
-	$self->{_width}   = $opts{width}  || 800,
-	$self->{_output}  = $opts{output} || Quran::ROOT_DIR .'/images',
+	$self->{_width}   = $opts{width}  || 1024,
+	$self->{_output}  = $opts{output} || Quran::ROOT_DIR .'/images/pages/'. $self->{_width} .'/',
 	$self->{_gd_text} = new GD::Text or die GD::Text::error;
 
 	my $output  = $self->{_output};

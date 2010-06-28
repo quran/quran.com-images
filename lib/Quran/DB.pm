@@ -9,11 +9,11 @@ use DBI;
 
 sub new {
 	my $class = shift;
-	my %opt = @_;
+	my $config = shift;
 
-	my $database = $opt{database} or die "database name needed";
-	my $username = $opt{username} or die "database username needed";
-	my $password = $opt{password} or die "database password needed";
+	my $database = $config->{database} or die "database name needed";
+	my $username = $config->{username} or die "database username needed";
+	my $password = $config->{password} or die "database password needed";
 
 	my $dbh = DBI->connect("dbi:mysql:$database", $username, $password);
 

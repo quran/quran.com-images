@@ -1,4 +1,6 @@
 *.swp
+Makefile.old
+test.pl
 pm_to_blib
 Makefile
 script/insert.*

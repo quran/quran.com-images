@@ -7,7 +7,6 @@ use base qw/Quran/;
 
 use GD;
 use GD::Text;
-use GD::Text::Align;
 use List::Util qw/min max/;
 use File::Path qw/make_path/;
 

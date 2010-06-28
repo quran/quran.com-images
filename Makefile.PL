@@ -1,12 +1,16 @@
 use 5.008008;
 use ExtUtils::MakeMaker;
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
+use File::Path;
+use List::Util;
+use GD;
+use GD::Text;
+use DBD::mysql;
+use DBI;
+use YAML;
 WriteMakefile(
     NAME              => 'Quran',
     VERSION_FROM      => 'lib/Quran.pm', # finds $VERSION
     PREREQ_PM         => {}, # e.g., Module::Name => 1.1
     ($] >= 5.005 ?     ## Add these new keywords supported since 5.005
-      (ABSTRACT_FROM  => 'lib/Quran.pm', # retrieve abstract from module
-       AUTHOR         => 'Nour Sharabash <nour.sharabash@gmail.com>') : ()),
+       (AUTHOR         => 'Nour Sharabash <nour.sharabash@gmail.com>') : ()),
 );

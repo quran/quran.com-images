@@ -35,7 +35,7 @@ $quran->image->ayah->generate(
 );
 
 =cut
-my ($pages, $width, $output, $help) = ('1..604', 1167, 'images', 0);
+my ($pages, $width, $output, $help) = ('1..604', 1024, 'images', 0);
 
 GetOptions(
 	'pages:s'  => \$pages,

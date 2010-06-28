@@ -18,7 +18,7 @@ $prev = ($page == 1)? 604 : ($page - 1);
 
 $width = isset($_GET['width'])? $_GET['width'] : '';
 if ((!is_numeric($width)) || ($width < 480) || ($width > 1920)) $width = '';
-if (empty($width)) $width = 800;
+if (empty($width)) $width = 1024;
 
 $lookup = array();
 $q = "select g.glyph_code, gplb.min_x, gplb.max_x, gplb.min_y, gplb.max_y
