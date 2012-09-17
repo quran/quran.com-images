@@ -9,9 +9,8 @@ use DBI;
 if (!$ARGV[0]){ die "please provide a directory name.\n"; }
 my $dir = $ARGV[0];
 
-my $db = "./data/sura_ayah_page_text.sqlite2.db";
-my $dbh = DBI->connect("dbi:SQLite2:dbname=$db","","", 
-                       { RaiseError => 1, AutoCommit => 0 });
+my $db = "./data/sura_ayah_page_text.sqlite3.db";
+my $dbh = DBI->connect("dbi:SQLite:dbname=$db","","");
 my $sth = $dbh->prepare("select sura, ayah from sura_ayah_page_text order " .
                         "by sura asc, ayah asc");
 $sth->execute();

@@ -7,8 +7,7 @@ use strict;
 use warnings;
 use DBI;
 
-my $dbh = DBI->connect("dbi:SQLite2:dbname=madani.sqlite2.db","","", 
-	{ RaiseError => 0, AutoCommit => 1 });
+my $dbh = DBI->connect("dbi:SQLite:dbname=madani.sqlite3.db","","" );
 
 eval { $dbh->do("drop table madani_page_text"); };
 $dbh->do("create table madani_page_text (
