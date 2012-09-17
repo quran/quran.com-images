@@ -43,7 +43,7 @@ sub write {
 	open PNG, ">$path/$file.png";
 	binmode PNG;
 
-	print PNG $image->png(0);
+	print PNG $image->png(9);
 
 	return;
 }
@@ -54,9 +54,16 @@ sub _is_mention_of_Allah {
 	# don't highlight Allah in bismillah (for now)
 	return 0 if defined $line_type and $line_type eq 'bismillah';
 
-	my $lemma = $self->db->_get_word_val('lemma', $glyph_code, $page_number);
+   #my $lemma = $self->db->_get_word_val('lemma', $glyph_code, $page_number);
 
-	return ($lemma eq '{ll~ah' or $lemma eq 'rab~')? 1 : 0;
+   #return ($lemma eq '{ll~ah' or $lemma eq 'rab~')? 1 : 0;
+   return 0;
+}
+
+sub _should_color {
+   my ($self, $glyph_code, $page_number, $line_type, $glyph_type) = @_;
+   if ($glyph_type eq 'end'){ return 1; }
+   else { return 0; }
 }
 
 1;
