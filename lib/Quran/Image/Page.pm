@@ -46,7 +46,10 @@ sub create {
 	print "Page: ". $page->{number} ."\n";
 
    my $fontfactor = 21;    # 21 is the default
-   my $fontdelta = (21 - abs(21 - $fontfactor)) / 21;
+   my $fontdelta = 1; #(21 - abs(21 - $fontfactor)) / 21;
+   if ($page->{number} == 213 || $page->{number} == 270 || $page->{number} == 576){
+       $fontfactor = 23;
+   }
 
 	$page->{width}   = $self->{_width};
 	$page->{height}  = $self->{_width} * Quran::Image::PHI * $fontdelta;
