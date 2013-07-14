@@ -47,7 +47,9 @@ sub create {
 
    my $fontfactor = 21;    # 21 is the default
    my $fontdelta = 1; #(21 - abs(21 - $fontfactor)) / 21;
-   if ($page->{number} == 213 || $page->{number} == 270 || $page->{number} == 576){
+
+   # page 270 font is slightly larger so it goes off the page
+   if ($page->{number} == 270){
        $fontfactor = 23;
    }
 
