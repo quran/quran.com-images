@@ -238,7 +238,7 @@ sub generate_image {
         my ($i, $_text) = @_;
 
         my $hack_width = 2 * $width;
-        my $hack_height = 3 * $line_spacing;
+        my $hack_height = 4 * $line_spacing;
 
         my $gd_image_hack = GD::Image->new($hack_width, $hack_height);
         my $gd_image_hack_white = $gd_image_hack->colorAllocate(255,255,255);
