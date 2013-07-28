@@ -3,8 +3,11 @@ package Quran::Image::Page;
 use strict;
 use warnings;
 
+use Data::Dumper;
+use Mojo::Log;
 use base qw/Quran Quran::Image/;
 
+my $log = new Mojo::Log;
 sub generate {
 	my $self = shift;
 	my %opts = @_;
@@ -82,6 +85,7 @@ sub create {
 
 		$line->{box} = $self->_get_box($line);
 
+
 		$page->{coord_y} -= $line->{box}->{min_y}
 			if $page->{coord_y} <= $page->{margin_top} and $line->{box}->{min_y} < 0;
 
@@ -92,6 +96,15 @@ sub create {
 			my $glyph = $line->{glyphs}->[$j];
 			$glyph->{line} = $line;
 			$glyph->{box} = $self->_get_box($glyph);
+
+            if ( $line->{type} ne 'sura' and grep { $page->{number} eq $_ } qw/1 2/  ) {
+                $glyph->{use_coord_y} = 1;
+                $glyph->{box}{coord_y} += 100;
+#                $log->info( 'hmm' );
+#                $log->info( Dumper $page );
+#                exit 0;
+            }
+
 
 			if ($glyph->{position} == 1 and $line->{type} eq 'sura') {
 				my $glyph = $self->db->get_ornament_glyph('header-box');
