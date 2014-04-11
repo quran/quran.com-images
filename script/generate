@@ -1,0 +1,65 @@
+#!/usr/bin/env perl
+# بسم الله الرحمن الرحيم
+BEGIN {
+    use File::Basename 'dirname';
+    use File::Spec::Functions qw/catdir splitdir/;
+
+    my @dir = splitdir( dirname( __FILE__ ) );
+    push @dir, ".." while -e join '/', @dir and not -e join '/', @dir, 'lib';
+    unshift @INC, join '/', @dir, $_ for qw/lib .inc/;
+}
+
+{
+    package Script::Generate;
+    use Moose; with 'Nour::Script';
+    use QuranImage::Generator::Page;
+
+    sub run {
+        my $self = shift;
+        my %opts = %{ $self->option };
+        my %conf = %{ $self->config };
+
+        my $generator;
+
+        if ( $opts{surah} ) {
+            $generator = new QuranImage::Generator::Ayah;
+        }
+        else {
+            $generator = new QuranImage::Generator::Page;
+        }
+
+        $generator->config( \%conf );
+        $generator->option( \%opts );
+        $generator->generate; # TODO old way was Quran->new->image->page->generate
+    }
+
+    1;
+}
+
+Script::Generate->new->run;
+
+#
+__END__
+
+=head1 NAME
+
+./script/generate - quran image generator script
+
+=head1 SYNOPSIS
+
+   ./script/generate [options]
+
+    e.g. ./script/generate --surah 2 --ayah 255 --width 960  --target ./img/ayat/
+    e.g. ./script/generate --pages 1..604       --width 1280 --target ./img/page/
+    e.g. ./script/generate --page 293           --width 640  --target ./img/page/
+
+=head1 OPTIONS
+
+    -p    --pages    page number or page range to process
+    -s    --surah    surah number (use with --ayah option or alone)
+    -a    --ayah     ayah number (used with --surah option)
+    -w    --width    width of image to generate in pixels
+    -t    --target   target directory of generated images
+    -h    --help     view these helpful instructions
+
+=cut

@@ -1,0 +1,34 @@
+---
+# vim: ts=2 sw=2
+language: perl
+perl:
+  - 5.14
+env:
+  global:
+    - PERL_CPANM_OPT="--notest --force --skip-installed"
+#services:
+#  - memcached
+#  - elasticsearch
+cache:
+  apt: true
+  directories:
+    - $HOME/perl5/perlbrew/perls/5.14
+before_install:
+  - dzil authordeps | xargs cpanm # build step
+  - export tmp=`mktemp --directory` # build step
+  - dzil build --in $tmp # build step
+  - perl -MCPAN::Meta -e '$,="\n"; print CPAN::Meta->load_file("$ENV{tmp}/META.yml")->effective_prereqs->merged_requirements->required_modules;' | xargs cpanm # build step
+install:
+  - dzil listdeps | xargs cpanm # build step
+#before_script:
+script:
+  - dzil test # build step
+#after_script:
+#after_success:
+#after_failure:
+notifications:
+  email:
+    recipients:
+      - nour@quran.com
+    on_success: change
+    on_failure: always

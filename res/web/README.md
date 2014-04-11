@@ -1,0 +1,3 @@
+- requires ./img/ directory symbolically linked to directory containing generated images
+- requires the created quran_image database (see README.md in repository base directory)
+- requires ./credentials.inc to be correct

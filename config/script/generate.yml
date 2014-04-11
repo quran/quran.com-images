@@ -1,0 +1,12 @@
+---
+option:
+    getopts:
+        - pages|range:s
+        - width:i
+        - target|output|directory:s
+        - surah:i
+        - ayah:i
+    default:
+        pages: 1..604
+        width: 1024
+        target: img

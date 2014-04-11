@@ -1,0 +1,13 @@
+---
+quran_image:
+    dsn: dbi:mysql:database=quran_image;host=localhost
+default:
+    database: quran_image
+    username: quran_image
+    password: quran_image
+    option:
+        AutoCommit: 1
+        RaiseError: 1
+        PrintError: 1
+        mysql_enable_utf8: 1
+        mysql_auto_reconnect: 1
