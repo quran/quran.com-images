@@ -1,6 +1,8 @@
 INSTALLATION SUMMARY
 --------------------
 
+documentation isn't real at the moment don't read this
+
 $ mysql -uroot -p
 
 mysql> create user 'quran_image'@'localhost' identified by 'quran_image';
