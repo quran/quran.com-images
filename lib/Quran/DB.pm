@@ -23,6 +23,12 @@ sub new {
 	}, $class;
 }
 
+sub reset_bounding_box_table {
+	my ($self, $page) = @_;
+	my $prep = $self->{_dbh}->prepare_cached("TRUNCATE glyph_page_line_bbox");
+	$prep->execute();
+}
+
 sub get_page_lines {
 	my ($self, $page) = @_;
 

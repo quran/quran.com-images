@@ -20,6 +20,8 @@ sub generate {
 	my $output  = $self->{_output};
 	my $width = $self->{_width};
 
+  # reset the bounding box table before re-running
+	$self->db->reset_bounding_box_table();
 	if (ref($self->{_pages}) eq 'ARRAY') {
 		for my $page (reverse @{ $self->{_pages} }) {
 			if ($page >= 1 and $page <= 604) {
@@ -53,7 +55,7 @@ sub create {
 
    # page 270 font is slightly larger so it goes off the page
    if ($page->{number} == 270){
-       $fontfactor = 23;
+       $fontfactor = 22.5;
    }
 
 	$page->{width}   = $self->{_width};
@@ -97,14 +99,14 @@ sub create {
 			$glyph->{line} = $line;
 			$glyph->{box} = $self->_get_box($glyph);
 
-            if ( $line->{type} ne 'sura' and grep { $page->{number} eq $_ } qw/1 2/  ) {
-                $glyph->{use_coord_y} = 1;
-                $glyph->{box}{coord_y} += 100;
-#                $log->info( 'hmm' );
-#                $log->info( Dumper $page );
-#                exit 0;
-            }
-
+      if ( $line->{type} ne 'sura' and grep { $page->{number} eq $_ } qw/1 2/  ) {
+          $glyph->{use_coord_y} = 1;
+          $glyph->{box}{coord_y} += 100;
+					$glyph->{y_offset} = 100;
+#         $log->info( 'hmm' );
+#         $log->info( Dumper $page );
+#         exit 0;
+      }
 
 			if ($glyph->{position} == 1 and $line->{type} eq 'sura') {
 				my $glyph = $self->db->get_ornament_glyph('header-box');
@@ -193,6 +195,14 @@ sub _set_box {
 		$min_y = int($min_y);
 		$max_y = $min_y + ($glyph->{box}->{max_y} - $glyph->{box}->{min_y});
 		$max_y = int($max_y + 0.5);
+
+		if ($glyph->{y_offset}) {
+			# used to ensure coordinates for pages 1 and 2 reflect additional
+			# offset added to space sura header and sura text.
+#     $log->info("here with " . $glyph->{y_offset});
+			$min_y = $min_y + $glyph->{y_offset};
+			$max_y = $max_y + $glyph->{y_offset};
+		}
 
 		$self->db->set_page_line_bbox($glyph->{page_line_id}, $page->{width}, $min_x, $max_x, $min_y, $max_y);
 	}
