@@ -20,7 +20,7 @@ sub generate {
 	my $output  = $self->{_output};
 	my $width = $self->{_width};
 
-  # reset the bounding box table before re-running
+	# reset the bounding box table before re-running
 	$self->db->reset_bounding_box_table();
 	if (ref($self->{_pages}) eq 'ARRAY') {
 		for my $page (reverse @{ $self->{_pages} }) {
@@ -50,13 +50,13 @@ sub create {
 
 	print "Page: ". $page->{number} ."\n";
 
-   my $fontfactor = 21;    # 21 is the default
-   my $fontdelta = 1; #(21 - abs(21 - $fontfactor)) / 21;
+	my $fontfactor = 21;    # 21 is the default
+	my $fontdelta = 1; #(21 - abs(21 - $fontfactor)) / 21;
 
-   # page 270 font is slightly larger so it goes off the page
-   if ($page->{number} == 270){
-       $fontfactor = 22.5;
-   }
+	# page 270 font is slightly larger so it goes off the page
+	if ($page->{number} == 270){
+		$fontfactor = 22.5;
+	}
 
 	$page->{width}   = $self->{_width};
 	$page->{height}  = $self->{_width} * Quran::Image::PHI * $fontdelta;
@@ -69,8 +69,8 @@ sub create {
 		#debug => $page->{image}->colorAllocate(225,225,225),
 		white => $page->{image}->colorAllocateAlpha(255,255,255,127),
 		black => $page->{image}->colorAllocate(0,0,0),
-      #red   => $page->{image}->colorAllocate(127,11,19)
-      red   => $page->{image}->colorAllocate(19,50,112)
+		#red   => $page->{image}->colorAllocate(127,11,19)
+		red   => $page->{image}->colorAllocate(19,50,112)
 	};
 
 	$page->{image}->alphaBlending(1);
@@ -89,7 +89,7 @@ sub create {
 
 
 		$page->{coord_y} -= $line->{box}->{min_y}
-			if $page->{coord_y} <= $page->{margin_top} and $line->{box}->{min_y} < 0;
+		if $page->{coord_y} <= $page->{margin_top} and $line->{box}->{min_y} < 0;
 
 		$line->{previous_w} = 0;
 		$page->{coord_x} = 0;
@@ -99,14 +99,14 @@ sub create {
 			$glyph->{line} = $line;
 			$glyph->{box} = $self->_get_box($glyph);
 
-      if ( $line->{type} ne 'sura' and grep { $page->{number} eq $_ } qw/1 2/  ) {
-          $glyph->{use_coord_y} = 1;
-          $glyph->{box}{coord_y} += 100;
-					$glyph->{y_offset} = 100;
-#         $log->info( 'hmm' );
-#         $log->info( Dumper $page );
-#         exit 0;
-      }
+			if ( $line->{type} ne 'sura' and grep { $page->{number} eq $_ } qw/1 2/  ) {
+				$glyph->{use_coord_y} = 1;
+				$glyph->{box}{coord_y} += 100;
+				$glyph->{y_offset} = 100;
+				#         $log->info( 'hmm' );
+				#         $log->info( Dumper $page );
+				#         exit 0;
+			}
 
 			if ($glyph->{position} == 1 and $line->{type} eq 'sura') {
 				my $glyph = $self->db->get_ornament_glyph('header-box');
@@ -125,8 +125,8 @@ sub create {
 			}
 
 			$page->{coord_x} = $page->{coord_x} ?
-				$page->{coord_x} + $line->{previous_w} :
-				$line->{box}->{coord_x};
+			$page->{coord_x} + $line->{previous_w} :
+			$line->{box}->{coord_x};
 
 			$line->{previous_w} = $glyph->{box}->{max_x};
 
@@ -168,14 +168,14 @@ sub _set_box {
 	my $color = $page->{color}->{black};
 
 	if ($line->{type} eq 'ayah') {
-      #my $gt = $self->db->_get_glyph_type($glyph->{text}, $page->{number});
-      #$color = $self->_should_color($glyph->{text}, $page->{number},
-      #   $line->{type}, $gt) ?
-      #	$page->{color}->{red} : $page->{color}->{black};
+		#my $gt = $self->db->_get_glyph_type($glyph->{text}, $page->{number});
+		#$color = $self->_should_color($glyph->{text}, $page->{number},
+		#   $line->{type}, $gt) ?
+		#	$page->{color}->{red} : $page->{color}->{black};
 	}
-   elsif ($line->{type} eq 'sura'){
-      #$color = $page->{color}->{red};
-   }
+	elsif ($line->{type} eq 'sura'){
+		#$color = $page->{color}->{red};
+	}
 
 	# begin hack
 	my ($coord_x, $coord_y) = $glyph->{use_coords} ? ($glyph->{box}->{coord_x}, $glyph->{box}->{coord_y}) : ($page->{coord_x}, $page->{coord_y});
@@ -199,7 +199,7 @@ sub _set_box {
 		if ($glyph->{y_offset}) {
 			# used to ensure coordinates for pages 1 and 2 reflect additional
 			# offset added to space sura header and sura text.
-#     $log->info("here with " . $glyph->{y_offset});
+			#     $log->info("here with " . $glyph->{y_offset});
 			$min_y = $min_y + $glyph->{y_offset};
 			$max_y = $max_y + $glyph->{y_offset};
 		}
@@ -225,8 +225,8 @@ sub _get_box {
 	my $ptsize = $glyph->{ptsize} || $line->{ptsize} || $page->{ptsize};
 
 	$self->{_gd_text}->set(
-		font   => $font,
-		ptsize => $ptsize
+	font   => $font,
+	ptsize => $ptsize
 	);
 	$self->{_gd_text}->set_text( $glyph->{text} );
 
