@@ -224,6 +224,27 @@ sub _get_box {
 	my $font   = $glyph->{font}   || $line->{font}   || $page->{font};
 	my $ptsize = $glyph->{ptsize} || $line->{ptsize} || $page->{ptsize};
 
+	# we recently changed these 3 fonts to fix some artifacts (extra lines or
+	# pixels in them). the exported font in fontforge causes char_up and
+	# char_down values to be different. i couldn't figure out a way to fix
+	# this in the font itself, so in those cases, just read the values from
+	# one of the other font files (in this case, BSML.ttf) and use them. the
+	# values seem to be the same across all the original fonts.
+
+	my $adjustedUp = 0;
+	my $adjustedDown = 0;
+	my $shouldAdjust = 0;
+
+	if ($font =~ /P105/ || $font =~ /P552/ || $font =~ /P554/) {
+		$self->{_gd_text}->set(
+		font   => $page->{font},
+		ptsize => $ptsize
+		);
+		$shouldAdjust = 1;
+		$adjustedUp = $self->{_gd_text}->get('char_up');
+		$adjustedDown = $self->{_gd_text}->get('char_down');
+	}
+
 	$self->{_gd_text}->set(
 	font   => $font,
 	ptsize => $ptsize
@@ -231,6 +252,12 @@ sub _get_box {
 	$self->{_gd_text}->set_text( $glyph->{text} );
 
 	my ($space, $char_down, $char_up) = $self->{_gd_text}->get('space', 'char_down', 'char_up');
+
+	# see comment above
+	if ($shouldAdjust) {
+		$char_up = $adjustedUp;
+		$char_down = $adjustedDown;
+	}
 
 	# @bbox[0,1]  Lower left corner (x,y)
 	# @bbox[2,3]  Lower right corner (x,y)
