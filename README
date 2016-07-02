@@ -1,7 +1,0 @@
-perl Makefile.PL
-make
-make install
-mysql -u <username> -p<password> -e 'create database <database>'
-mysql -u <username> -p<password> <database> < sql/database.sql
-edit config/database.yaml and set your mysql username, password and database name
-./script/generate.pl --pages 1..604 --width 1024 --output images/pages/1024/
