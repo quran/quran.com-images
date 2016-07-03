@@ -235,7 +235,7 @@ sub _get_box {
 	my $adjustedDown = 0;
 	my $shouldAdjust = 0;
 
-	if ($font =~ /P105/ || $font =~ /P552/ || $font =~ /P554/) {
+	if ($font =~ /P105/ || $font =~ /P237/ || $font =~ /P552/ || $font =~ /P554/) {
 		$self->{_gd_text}->set(
 		font   => $page->{font},
 		ptsize => $ptsize

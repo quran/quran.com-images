@@ -18,3 +18,4 @@ output/*
 test_output
 *.db-journal
 .tmp
+mobile
