@@ -16,6 +16,7 @@ perl Makefile.PL
 make
 make install
 mysql -u root -p your_password < sql/schema.sql
+mysql -u root -p your_password < sql/database.sql
 mysql -u root -p your_password -e "create user 'nextgen'@'localhost' identified by 'nextgen'"
 mysql -u root -p your_password -e "grant all privileges on nextgen.* to 'nextgen'@'localhost'"
 mysql -u root -p your_password -e "flush privileges"
