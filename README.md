@@ -23,9 +23,19 @@ mysql -u root -p your_password -e "flush privileges"
 
 ## Usage
 
+generate page 50 with a width of 1300:
+
 `./script/generate.pl --width 1300 --output ./output/ --pages 50`
 
+generate pages 1 through 3 with a width of 1300:
+
 `./script/generate.pl --width 1300 --output ./output/ --pages 1..3`
+
+## Compression
+
+make sure to run the images through [ImageOptim](https://imageoptim.com) or through [zopflipng](https://github.com/google/zopfli) to get optimized images.
+
+`zopflipng --prefix=out/ --lossy_transparent --lossy_8bit --splitting=2 --iterations=100 *.png`
 
 ## Ayah by ayah images
 
