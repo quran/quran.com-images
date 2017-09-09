@@ -22,6 +22,30 @@ mysql -u root -p your_password -e "grant all privileges on nextgen.* to 'nextgen
 mysql -u root -p your_password -e "flush privileges"
 ```
 
+## Docker installation
+
+Install [Docker](https://www.docker.com/) then run the following:
+
+```
+# build and run services (mysql and perl libs)
+docker-compose up &
+# wait until mysql is up and accepting connections
+# init database
+docker-compose exec mysql mysql -u root -pnextgen nextgen -e "source /sql/schema.sql"
+docker-compose exec mysql mysql -u root -pnextgen nextgen -e "source /sql/database.sql"
+# run some generation scripts (see Usage below)
+docker-compose run gen /app/script/generate.pl --output ./output/ ...
+mkdir output/comp
+docker-compose run gen zopflipng --prefix=comp/ ... ./output/*.png
+# clean when done
+docker-compose down
+```
+
+Note that mysql data is persisted on the host volume `mysqldata`.
+You must set the `--output` option value to `./output/` to persist
+the output on the host machine. Any other output path will be local 
+to the container.
+
 ## Usage
 
 generate page 50 with a width of 1300:

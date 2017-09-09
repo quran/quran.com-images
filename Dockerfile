@@ -1,0 +1,40 @@
+FROM debian:jessie
+
+MAINTAINER Hossam Hammady <github@hammady.net>
+
+RUN apt-get update -qq && \
+    apt-get install -y \
+      libgd-gd2-perl libgd-text-perl \
+      libdbd-mysql-perl libdbi-perl \
+      libconfig-yaml-perl \
+      make gcc g++ \
+      unzip \
+      curl && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+ADD config /app/config
+ADD lib /app/lib
+ADD res /app/res
+ADD script /app/script
+ADD sql /app/sql
+ADD Makefile.PL /app/Makefile.PL
+
+RUN cd /app && \
+    perl Makefile.PL && \
+    make && \
+    make install && \
+    curl -L https://cpanmin.us | perl - -M https://cpan.metacpan.org -n Mojolicious
+
+RUN cd / && \
+    curl -L -o zopfli.zip https://github.com/google/zopfli/archive/master.zip && \
+    unzip zopfli.zip && \
+    cd zopfli-master && \
+    make zopflipng && \
+    cp zopflipng /usr/local/bin/
+
+RUN sed -i 's/localhost/mysql/' /app/config/database.yaml
+
+CMD /app/script/generate.pl help
