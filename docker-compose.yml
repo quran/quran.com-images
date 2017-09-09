@@ -1,0 +1,18 @@
+version: '3'
+services:
+  mysql:
+    image: mysql:5.7
+    environment:
+      - MYSQL_DATABASE=nextgen
+      - MYSQL_USER=nextgen
+      - MYSQL_PASSWORD=nextgen
+      - MYSQL_ROOT_PASSWORD=nextgen
+    volumes:
+      - ./mysqldata:/var/lib/mysql
+      - ./sql:/sql
+  gen:
+    build: .
+    depends_on:
+      - mysql
+    volumes:
+      - ./output:/app/output

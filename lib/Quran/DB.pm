@@ -14,8 +14,10 @@ sub new {
 	my $database = $config->{database} or die "database name needed";
 	my $username = $config->{username} or die "database username needed";
 	my $password = $config->{password} or die "database password needed";
+	my $host = $config->{host} // 'localhost';
+	my $port = $config->{port} // '3306';
 
-	my $dbh = DBI->connect("dbi:mysql:$database", $username, $password);
+	my $dbh = DBI->connect("dbi:mysql:database=".$database.";host=".$host.";port=".$port, $username, $password) or die;
 
 	bless {
 		_class => $class,

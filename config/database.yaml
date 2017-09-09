@@ -1,3 +1,5 @@
+host: localhost
+port: 3306
 database: nextgen
 username: nextgen
 password: nextgen
