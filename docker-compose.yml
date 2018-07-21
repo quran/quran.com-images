@@ -8,11 +8,13 @@ services:
       - MYSQL_PASSWORD=nextgen
       - MYSQL_ROOT_PASSWORD=nextgen
     volumes:
-      - ./mysqldata:/var/lib/mysql
-      - ./sql:/sql
+      - mysqldata:/var/lib/mysql
+      - ./sql:/docker-entrypoint-initdb.d
   gen:
     build: .
     depends_on:
       - mysql
     volumes:
       - ./output:/app/output
+volumes:
+  mysqldata:

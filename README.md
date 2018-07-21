@@ -44,24 +44,29 @@ mysql -u root -p your_password -e "flush privileges"
 
 ## Docker installation
 
-Install [Docker](https://www.docker.com/) then run the following:
+Install [Docker](https://www.docker.com/) 
+and [Docker Compose](https://docs.docker.com/compose/install/).
+
+Build and run services (mysql and perl libs):
 
 ```
-# build and run services (mysql and perl libs)
-docker-compose up &
-# wait until mysql is up and accepting connections
-# init database
-docker-compose exec mysql mysql -u root -pnextgen nextgen -e "source /sql/schema.sql"
-docker-compose exec mysql mysql -u root -pnextgen nextgen -e "source /sql/database.sql"
-# run some generation scripts (see Usage below)
+docker-compose up -d
+```
+
+To run scripts (see Usage section below) use the `gen` service:
+
+```
 docker-compose run gen /app/script/generate.pl --output ./output/ ...
-mkdir output/comp
 docker-compose run gen zopflipng --prefix=comp/ ... ./output/*.png
-# clean when done
+```
+
+Stop sevices when done:
+
+```
 docker-compose down
 ```
 
-Note that mysql data is persisted on the host volume `mysqldata`.
+Note that mysql data is persisted on the host as a docker volume.
 You must set the `--output` option value to `./output/` to persist
 the output on the host machine. Any other output path will be local 
 to the container.

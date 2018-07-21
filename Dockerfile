@@ -19,7 +19,6 @@ ADD config /app/config
 ADD lib /app/lib
 ADD res /app/res
 ADD script /app/script
-ADD sql /app/sql
 ADD Makefile.PL /app/Makefile.PL
 
 RUN cd /app && \

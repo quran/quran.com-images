@@ -14,7 +14,7 @@ blib/
 *.swo
 images/*.png
 *.bak
-output/*
+output/**/*.png
 test_output
 *.db-journal
 .tmp
