@@ -10,7 +10,7 @@ This script outputs images, and also updates a database with the bounds of each 
 The code is copyleft GPL (read: free) but the actual fonts and pages (in the `res/fonts` directory) belong to the [King Fahd Quran Complex in Saudia Arabia](http://www.qurancomplex.com)
 
 ## Prerequisites
-Following prerequisites are required before instructions below can work. I tried this on my windows box (no reason to beleive it will not work on other platform as long as you use the right tools for this platform)
+Following prerequisites are required before instructions below can work. I tried this on my windows box (no reason to believe it will not work on other platform as long as you use the right tools for this platform)
 
 #### Required Packages
 - ppm install dmake
