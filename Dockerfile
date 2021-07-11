@@ -13,7 +13,16 @@ RUN apt-get update -qq && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
+RUN cd / && \
+    curl -L -o zopfli.zip https://github.com/google/zopfli/archive/master.zip && \
+    unzip zopfli.zip && \
+    cd zopfli-master && \
+    make zopflipng && \
+    cp zopflipng /usr/local/bin/
+
 WORKDIR /app
+
+RUN curl -L https://cpanmin.us | perl - -M https://cpan.metacpan.org -n Mojolicious
 
 ADD config /app/config
 ADD lib /app/lib
@@ -24,15 +33,7 @@ ADD Makefile.PL /app/Makefile.PL
 RUN cd /app && \
     perl Makefile.PL && \
     make && \
-    make install && \
-    curl -L https://cpanmin.us | perl - -M https://cpan.metacpan.org -n Mojolicious
-
-RUN cd / && \
-    curl -L -o zopfli.zip https://github.com/google/zopfli/archive/master.zip && \
-    unzip zopfli.zip && \
-    cd zopfli-master && \
-    make zopflipng && \
-    cp zopflipng /usr/local/bin/
+    make install
 
 RUN sed -i 's/localhost/mysql/' /app/config/database.yaml
 
