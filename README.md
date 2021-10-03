@@ -16,7 +16,7 @@ Following prerequisites are required before instructions below can work. I tried
 - ppm install dmake
 - ppm install dbd-mysql
 - ppm install yaml
-- Goto your perl package manager and add 'Mojo-Log-More' package and all dependencies.
+- Go to your perl package manager and add 'Mojo-Log-More' package and all dependencies.
 
 #### Required Software
 - Install MySQL server and tools.
