@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM debian:bullseye-slim
 
 MAINTAINER Hossam Hammady <github@hammady.net>
 
