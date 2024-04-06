@@ -1,4 +1,4 @@
-FROM debian:jessie
+FROM debian:buster
 
 MAINTAINER Hossam Hammady <github@hammady.net>
 
@@ -34,6 +34,8 @@ RUN cd /app && \
     perl Makefile.PL && \
     make && \
     make install
+
+RUN find /app -type f -name '*.pl' -exec sed -i 's/\r$//' {} \;
 
 RUN sed -i 's/localhost/mysql/' /app/config/database.yaml
 
