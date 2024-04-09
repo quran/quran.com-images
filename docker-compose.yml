@@ -1,7 +1,7 @@
 version: '3'
 services:
   mysql:
-    image: mysql
+    image: mysql:8
     environment:
       - MYSQL_DATABASE=nextgen
       - MYSQL_USER=nextgen

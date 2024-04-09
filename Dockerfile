@@ -1,4 +1,4 @@
-FROM debian:bullseye-slim
+FROM debian:bookworm-slim
 
 MAINTAINER Hossam Hammady <github@hammady.net>
 
