@@ -1,5 +1,5 @@
 بسم الله الرحمن الرحيم
-In the name of Allah, Most Gracious, Most Merciful
+<br>_In the name of Allah, Most Gracious, Most Merciful_
 
 # Quran Image Generator
 
