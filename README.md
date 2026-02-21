@@ -7,7 +7,7 @@ These are a set of scripts that generate Quran page images based on the old mada
 
 This script outputs images, and also updates a database with the bounds of each of the generated glyphs (allowing apps to highlight individual words or verses).
 
-The code is copyleft GPL (read: free) but the actual fonts and pages (in the `res/fonts` directory) belong to the [King Fahd Quran Complex in Saudia Arabia](http://www.qurancomplex.com)
+The code is copyleft GPL (read: free) but the actual fonts and pages (in the `res/fonts` directory) belong to the [King Fahd Quran Complex in Saudia Arabia](https://qurancomplex.gov.sa)
 
 ## Prerequisites
 Following prerequisites are required before instructions below can work. I tried this on my windows box (no reason to believe it will not work on other platform as long as you use the right tools for this platform)
